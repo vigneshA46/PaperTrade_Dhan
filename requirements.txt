@@ -1,0 +1,33 @@
+# -------- Core --------
+python-dotenv==1.0.1
+requests==2.32.3
+pytz==2024.1
+pyotp
+dhanhq
+dotenv
+psycopg2-binary
+
+# -------- Dhan API / WebSocket --------
+websocket-client==1.7.0
+
+# -------- Data Processing --------
+pandas==2.2.2
+numpy==1.26.4
+
+# -------- Async / Performance --------
+aiohttp==3.9.5
+
+# -------- State / Cache (optional but recommended) --------
+redis==5.0.4
+
+# -------- Logging --------
+loguru==0.7.2
+
+# -------- Date & Time Utilities --------
+python-dateutil==2.9.0.post0
+
+# -------- Serialization --------
+orjson==3.10.7
+
+# -------- Development / Debug --------
+tqdm==4.66.5
