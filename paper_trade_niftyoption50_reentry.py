@@ -417,7 +417,7 @@ def on_message(msg):
       #print("MESSAGE: ",msg)
       candle = builder.process_tick(msg)
       if candle:
-        token = msg["security_id"]      
+        token = int(msg["security_id"])      
         time_ = candle["timestamp"]
         on_candle(token, time_, candle)
         
@@ -443,5 +443,6 @@ while True:
         print("WS ERROR:", e)
   
     
+
 
 
