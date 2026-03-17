@@ -9,6 +9,7 @@ from dhanhq import dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
+import threading
 
 # =========================
 # CONFIG
@@ -17,7 +18,7 @@ from find_security import load_fno_master, find_option_security
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
 
-COMMON_ID = "b6330608-96c1-46d9-8bc4-9696db6b9aa7"
+COMMON_ID = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"
 SYMBOL = "NIFTY"
 
 load_dotenv()
@@ -49,6 +50,35 @@ fno_df = load_fno_master()
 # =========================
 # HELPERS
 # =========================
+
+
+def logtradeleg(strategyid, leg, symbol, strike_price, date):
+    url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
+    
+    payload = {
+        "strategy_id": strategyid,
+        "leg": leg,
+        "symbol": symbol,
+        "strike_price": strike_price,
+        "date": date
+    }
+
+    try:
+        response = requests.post(url, json=payload)
+
+        if response.status_code == 200 or response.status_code == 201:
+            print("✅ Trade leg logged successfully")
+            return response.json()
+        else:
+            print(f"❌ Failed to log trade leg: {response.status_code}")
+            print(response.text)
+            return None
+
+    except Exception as e:
+        print(f"⚠️ Error while calling API: {e}")
+        return None
+
+
 
 def get_first_candle_mark(security_id):
 
@@ -223,6 +253,26 @@ PE_ID = str(pe_row["SECURITY_ID"])
 print("📌 CE:", CE_ID)
 print("📌 PE:", PE_ID)
 
+# Log CE leg
+logtradeleg_async(
+    COMMOM_ID,
+    "CE",
+    str(ce_row["SEM_TRADING_SYMBOL"]),
+    ATM,
+    str(today_date)
+)
+
+# Log PE leg
+logtradeleg_async(
+    COMMOM_ID,
+    "PE",
+    str(pe_row["SEM_TRADING_SYMBOL"]),
+    ATM,
+    str(today_date)
+)
+
+
+
 # =========================
 # STATE
 # =========================
@@ -233,109 +283,153 @@ pe_state = init_state()
 ce_state["marked"] = get_first_candle_mark(CE_ID)
 pe_state["marked"] = get_first_candle_mark(PE_ID)
 
-def force_exit(state, name, token, candle_close):
+def telemetry_broadcaster():
+    while True:
+        try:
+            requests.post(
+                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
+                json=telemetry,
+                timeout=1
+            )
+        except Exception as e:
+            print("Telemetry error:", e)
+
+        time.sleep(1)  # 🔥 KEY PART
+
+
+threading.Thread(target=telemetry_broadcaster, daemon=True).start()
+
+def force_exit(state, name, token, ltp):
     global combined_pnl
 
     if state["position"]:
-        exit_price = candle_close
+        exit_price = ltp
+
         pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
         state["pnl"] += pnl
         combined_pnl += pnl
 
-        print(f"🏁 FORCE EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
+        print(f"🚨 FORCE EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
 
         log_trade(
-            leg_name=f"{name} BUY",
-            token=token,
-            side="BUY",
-            lot=state["lot"],
-            entry_price=state["entry_price"],
-            entry_time=state["entry_time"],
-            exit_price=exit_price,
-            exit_time=datetime.now(IST).isoformat(),
-            pnl=pnl,
-            cum_pnl=combined_pnl,
-            reason="Target Reset"
+            f"{name} BUY",
+            token,
+            "BUY",
+            state["lot"],
+            state["entry_price"],
+            state["entry_time"],
+            exit_price,
+            datetime.now(IST).isoformat(),
+            pnl,
+            combined_pnl,
+            "UNIVERSAL EXIT"
         )
 
         state["position"] = False
 
+
 # =========================
 # STRATEGY ENGINE
 # =========================
-
-def handle_leg(name, token, candle, state):
+def handle_leg(name, token, candle, state, ltp):
     global combined_pnl
 
-    print("leg entered ", name, token, candle, state)
     now = datetime.now(IST).time()
     close = candle["close"]
 
     avg = (candle["open"] + candle["high"] +
            candle["low"] + candle["close"]) / 4
-    
-        # ---- REARM CHECK ----
+
+    timestamp = candle["timestamp"]
+
+    # =========================
+    # RE-ARM LOGIC
+    # =========================
     if state["rearm_required"]:
         if close < state["marked"]:
             state["rearm_required"] = False
-            print(f"🔄 {name} REARMED (price below mark)")
-        else:   
+            state["pending_entry"] = False
+            print(f"🔄 {name} REARMED")
+        else:
             return
 
+    # =========================
+    # TIME EXIT (15:20)
+    # =========================
     if now >= TRADE_END:
+
         if state["position"]:
-            exit_price = candle["close"]
+            exit_price = ltp
+
             pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+
             state["pnl"] += pnl
             combined_pnl += pnl
 
-
-            print(f"⏹ TIME EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
             log_trade(
-                leg_name=f"{name} BUY",
-                token=token,
-                side="BUY",
-                lot=state["lot"],
-                entry_price=state["entry_price"],
-                entry_time=state["entry_time"],
-                exit_price=exit_price,
-                exit_time=datetime.now(IST).isoformat(),
-                pnl=pnl,
-                cum_pnl=combined_pnl,
-                reason="TIME EXIT"
+                f"{name} BUY",
+                token,
+                "BUY",
+                state["lot"],
+                state["entry_price"],
+                state["entry_time"],
+                exit_price,
+                datetime.now(IST).isoformat(),
+                pnl,
+                combined_pnl,
+                "TIME EXIT"
             )
+
             state["position"] = False
 
+        state["pending_entry"] = False
         state["trading_disabled"] = True
-        log_event(f"{name} BUY", token, "TIME_EXIT", None, "15:20 Hit")
         return
 
     if state["trading_disabled"]:
         return
-    
-       # ---- ENTRY SIGNAL ----
+
+    # =========================
+    # ENTRY SIGNAL
+    # =========================
     if not state["position"] and not state["pending_entry"]:
+
         if close > state["marked"] and avg > state["marked"] and avg < close:
+
             state["pending_entry"] = True
+            state["signal_time"] = timestamp
+
             print(f"🟡 {name} SIGNAL")
 
-            log_event(f"{name} BUY", token, "ENTRY_SIGNAL", close, "Entry condition met")
+            log_event(f"{name} BUY", token, "ENTRY_SIGNAL", close, "Condition met")
 
-    # ---- EXECUTE ENTRY (NEXT CANDLE) ----
+    # =========================
+    # EXECUTE ENTRY (NEXT CANDLE)
+    # =========================
     elif state["pending_entry"] and not state["position"]:
-        state["entry_price"] = candle["open"]
-        state["entry_time"] = datetime.now(IST).isoformat()
-        state["position"] = True
-        state["pending_entry"] = False
 
-        print(f"🟢 BUY {name} @ {state['entry_price']} LOT:{state['lot']}")
+        if timestamp != state["signal_time"]:
 
-        log_event(f"{name} BUY", token, "ENTRY_EXECUTED", state["entry_price"], f"Lot {state['lot']}")
+            entry_price = candle["open"]
 
-    # ---- EXIT ----
+            state["entry_price"] = entry_price
+            state["entry_time"] = datetime.now(IST).isoformat()
+
+            state["position"] = True
+            state["pending_entry"] = False
+
+            print(f"🟢 BUY {name} @ {entry_price} LOT:{state['lot']}")
+
+            log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, f"Lot {state['lot']}")
+
+    # =========================
+    # EXIT CONDITION
+    # =========================
     if state["position"] and close < state["marked"]:
-        exit_price = close
+
+        exit_price = ltp
+
         pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
         state["pnl"] += pnl
@@ -344,55 +438,62 @@ def handle_leg(name, token, candle, state):
         print(f"🔴 EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
 
         log_trade(
-            leg_name=f"{name} BUY",
-            token=token,
-            side="BUY",
-            lot=state["lot"],
-            entry_price=state["entry_price"],
-            entry_time=state["entry_time"],
-            exit_price=exit_price,
-            exit_time=datetime.now(IST).isoformat(),
-            pnl=pnl,
-            cum_pnl=combined_pnl,
-            reason="Below Mark"
+            f"{name} BUY",
+            token,
+            "BUY",
+            state["lot"],
+            state["entry_price"],
+            state["entry_time"],
+            exit_price,
+            datetime.now(IST).isoformat(),
+            pnl,
+            combined_pnl,
+            "Below Mark"
         )
 
         state["position"] = False
+        state["pending_entry"] = False
+
         state["lot"] += 1
         state["rearm_required"] = True
 
-def universal_exit_check():
-    global combined_pnl
-
-    combined_pnl = ce_state["pnl"] + pe_state["pnl"]
-
-    if combined_pnl >= TARGET_POINTS:
-        # --- Force exit open positions ---
-        if last_prices:
-            force_exit(ce_state, "CE", CE_ID, last_prices.get("CE"))
-            force_exit(pe_state, "PE", PE_ID, last_prices.get("PE"))
 
 
-        ce_state["rearm_required"] = True
-        pe_state["rearm_required"] = True
-        # --- RESET LOGIC ---
+def universal_exit_check(ce_ltp, pe_ltp):
+
+    ce_running = 0
+    pe_running = 0
+
+    if ce_state["position"]:
+        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+
+    if pe_state["position"]:
+        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+
+    total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
+
+    if total >= TARGET_POINTS:
+
+        print(f"\n🏁 TARGET HIT {total:.2f}\n")
+
+        # force exit both
+        force_exit(ce_state, "CE", CE_ID, ce_ltp)
+        force_exit(pe_state, "PE", PE_ID, pe_ltp)
+
+        # reset only cycle variables
         ce_state["lot"] = 1
         pe_state["lot"] = 1
 
-        ce_state["pnl"] = 0
-        pe_state["pnl"] = 0
+        ce_state["rearm_required"] = True
+        pe_state["rearm_required"] = True
 
-        combined_pnl = 0
+        ce_state["pending_entry"] = False
+        pe_state["pending_entry"] = False
 
-        print(f"\n🏁 TARGET HIT : {combined_pnl:.2f}\n")
+        log_event("ALL LEGS", 0, "TARGET_HIT", total, "Cycle reset (PnL NOT reset)")
 
-        log_event(
-            "ALL LEGS",
-            0,
-            "TARGET_RESET",
-            None,
-            "Target hit → lot reset to 1"
-        )
+
+
 # =========================
 # CANDLE CALLBACK
 # =========================
@@ -412,16 +513,38 @@ def on_candle(token, time_, candle):
 
     universal_exit_check()
 
+last_prices = {}
 
 def on_message(msg):
-      #print("MESSAGE: ",msg)
-      candle = builder.process_tick(msg)
-      if candle:
-        token = str(msg["security_id"])      
-        time_ = candle["timestamp"]
-        on_candle(token, time_, candle)
-        
+    candle = builder.process_tick(msg)
 
+    token = str(msg["security_id"])
+    ltp = msg.get("LTP")
+
+    # store LTP
+    if token == CE_ID:
+        last_prices["CE"] = ltp
+
+    if token == PE_ID:
+        last_prices["PE"] = ltp
+
+    # =========================
+    # UNIVERSAL EXIT (TICK LEVEL)
+    # =========================
+    if "CE" in last_prices and "PE" in last_prices:
+        universal_exit_check(last_prices["CE"], last_prices["PE"])
+
+    # =========================
+    # CANDLE PROCESSING
+    # =========================
+    if candle:
+
+        if token == CE_ID:
+            handle_leg("CE", token, candle, ce_state, last_prices.get("CE"))
+
+        if token == PE_ID:
+            handle_leg("PE", token, candle, pe_state, last_prices.get("PE"))
+            
 # =====================
 # START WS 
 # =====================

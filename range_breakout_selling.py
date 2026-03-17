@@ -144,8 +144,8 @@ def mark_range():
         security_id=13,
         exchange_segment="IDX_I",
         instrument_type="INDEX",
-        from_date=f"{today} 9:55",
-        to_date=f"{today} 10:00"
+        from_date=f"{today} 9:55:00",
+        to_date=f"{today} 10:00:00"
     )
 
     c = data.iloc[-1]
@@ -346,3 +346,4 @@ if __name__ == "__main__":
 
             elif msg["security_id"] in (CE_ID, PE_ID):
                 on_tick_option(msg)
+ 
