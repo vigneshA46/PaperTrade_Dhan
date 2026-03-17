@@ -9,6 +9,8 @@ from dhanhq import dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
+import threading
+
 
 
 # =========================
@@ -18,7 +20,7 @@ from find_security import load_fno_master, find_option_security
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
 
-COMMON_ID = "b6330608-96c1-46d9-8bc4-9696db6b9aa7"
+COMMON_ID = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
 SYMBOL = "NIFTY"
 
 load_dotenv()
@@ -36,6 +38,18 @@ TARGET_POINTS = 50
 LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
+
+telemetry = {
+    "strategy_id": COMMON_ID,
+    "run_id": COMMON_ID,
+    "status": "RUNNING",
+    "pnl": 0,
+    "pnl_percentage": 0,
+    "ce_ltp": 0,
+    "pe_ltp": 0,
+    "ce_pnl": 0,
+    "pe_pnl": 0
+}
 
 
 # =========================
@@ -102,6 +116,21 @@ def log_event(leg_name, token, action, price, remark=""):
         print("EVENT LOG ERROR:", e)
 
 
+def telemetry_broadcaster():
+    while True:
+        try:
+            requests.post(
+                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
+                json=telemetry,
+                timeout=1
+            )
+        except Exception as e:
+            print("Telemetry error:", e)
+
+        time.sleep(1)  # 🔥 KEY PART
+
+
+threading.Thread(target=telemetry_broadcaster, daemon=True).start()
 
 def log_trade(leg_name,token,side,lot,entry_price,entry_time,exit_price,exit_time,pnl,cum_pnl,reason):
     payload = {
@@ -342,14 +371,10 @@ def handle_leg(name, token, candle, state):
 def universal_exit_check():
 
     global combined_pnl
-
     combined_pnl = ce_state["pnl"] + pe_state["pnl"]
-
     if combined_pnl >= TARGET_POINTS:
-
         ce_state["trading_disabled"] = True
         pe_state["trading_disabled"] = True
-
         print("🏁 TARGET HIT", combined_pnl)
 
 
@@ -361,26 +386,35 @@ def on_candle(token, time_, candle):
     print("🕯", token, time_, candle)
     #print("security id",CE_ID,type(CE_ID),"token",token,type(token))
 
-    if token == CE_ID:
-        
+    if token == CE_ID:   
         handle_leg("CE", token, candle, ce_state)
 
     if token == PE_ID:
-        
         handle_leg("PE", token, candle, pe_state)
 
     
 
 
 def on_message(msg):
-      #print("MESSAGE: ",msg)
-      candle = builder.process_tick(msg)
-      if candle:
-        token = str(msg["security_id"])      
-        time_ = candle["timestamp"]
-        on_candle(token, time_, candle)
+    candle = builder.process_tick(msg)
 
+    token = str(msg["security_id"])
+    ltp = msg.get("LTP")
 
+    if token == CE_ID:
+        telemetry["ce_ltp"] = ltp
+
+    if token == PE_ID:
+        telemetry["pe_ltp"] = ltp
+
+    # update pnl
+    telemetry["ce_pnl"] = ce_state["pnl"]
+    telemetry["pe_pnl"] = pe_state["pnl"]
+
+    telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
+
+    if candle:
+        on_candle(token, candle["timestamp"], candle)
 # =========================
 # START WEBSOCKET
 # =========================
