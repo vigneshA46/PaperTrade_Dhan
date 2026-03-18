@@ -290,7 +290,7 @@ logtradeleg(
     "CE",
     f"NIFTY CE {CE_ID}",
     ATM,
-    str(today_date)
+    str(today)
 )
 
 # Log PE leg
@@ -299,7 +299,7 @@ logtradeleg(
     "PE",
     f"NIFTY CE {PE_ID}",
     ATM,
-    str(today_date)
+    str(today)
 )
 
 
