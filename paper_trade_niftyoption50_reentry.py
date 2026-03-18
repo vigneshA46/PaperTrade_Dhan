@@ -267,7 +267,7 @@ print("📌 CE:", CE_ID)
 print("📌 PE:", PE_ID)
 
 # Log CE leg
-logtradeleg_async(
+logtradeleg(
     COMMOM_ID,
     "CE",
     str(ce_row["SEM_TRADING_SYMBOL"]),
@@ -276,7 +276,7 @@ logtradeleg_async(
 )
 
 # Log PE leg
-logtradeleg_async(
+logtradeleg(
     COMMOM_ID,
     "PE",
     str(pe_row["SEM_TRADING_SYMBOL"]),
