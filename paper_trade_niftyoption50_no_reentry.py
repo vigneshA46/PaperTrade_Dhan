@@ -286,7 +286,7 @@ print("PE :", PE_ID)
 
 # Log CE leg
 logtradeleg(
-    COMMOM_ID,
+    COMMON_ID,
     "CE",
     str(ce_row["SEM_TRADING_SYMBOL"]),
     ATM,
@@ -295,7 +295,7 @@ logtradeleg(
 
 # Log PE leg
 logtradeleg(
-    COMMOM_ID,
+    COMMON_ID,
     "PE",
     str(pe_row["SEM_TRADING_SYMBOL"]),
     ATM,
