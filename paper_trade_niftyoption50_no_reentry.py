@@ -16,7 +16,7 @@ import threading
 # =========================
 # CONFIG
 # =========================
-
+ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
 
@@ -260,6 +260,8 @@ for i in range(len(timestamps)):
         opening_candles.append(candle)
 
 print("Opening candles:", opening_candles)
+
+
 
 if opening_candles:
     atm_price = float(opening_candles[-1]["close"])  

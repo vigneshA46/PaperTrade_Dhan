@@ -15,7 +15,7 @@ import threading
 # CONFIG
 # =========================
 
-
+ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
 
@@ -313,6 +313,7 @@ def telemetry_broadcaster():
 
 
 threading.Thread(target=telemetry_broadcaster, daemon=True).start()
+
 
 def force_exit(state, name, token, ltp):
     global combined_pnl
