@@ -168,6 +168,19 @@ def wait_for_start():
 def calculate_atm(price, step=50):
     return int(round(price / step) * step)
 
+telemetry = {
+    "strategy_id": COMMON_ID,
+    "run_id": COMMON_ID,
+    "status": "RUNNING",
+    "pnl": 0,
+    "pnl_percentage": 0,
+    "ce_ltp": 0,
+    "pe_ltp": 0,
+    "ce_pnl": 0,
+    "pe_pnl": 0
+}
+
+
 
 def init_state():
     return {
