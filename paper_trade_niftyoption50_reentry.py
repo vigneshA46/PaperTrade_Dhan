@@ -270,7 +270,7 @@ print("📌 PE:", PE_ID)
 logtradeleg(
     COMMON_ID,
     "CE",
-    str(ce_row["SEM_TRADING_SYMBOL"]),
+    f"NIFTY CE {CE_ID}",
     ATM,
     str(today_date)
 )
@@ -279,7 +279,7 @@ logtradeleg(
 logtradeleg(
     COMMON_ID,
     "PE",
-    str(pe_row["SEM_TRADING_SYMBOL"]),
+    f"NIFTY CE {PE_ID}",
     ATM,
     str(today_date)
 )
