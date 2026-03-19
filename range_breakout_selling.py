@@ -9,7 +9,7 @@ from dhanhq import dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
-
+from dispatcher import subscribe
 
 # =========================
 # CONFIG
@@ -325,25 +325,26 @@ if __name__ == "__main__":
     wait_for_start()
     mark_range()
 
-    instruments = [
+    TOKENS = [
         (marketfeed.NSE, INDEX_TOKEN),
         (marketfeed.NSE_FNO, CE_ID),
         (marketfeed.NSE_FNO, PE_ID)
     ]
 
-    feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
+    MY_TOKENS = [ INDEX_TOKEN,CE_ID,PE_ID]
+
+
 
     print("\n🚀 Range Breakout Paper Engine Running...\n")
 
-    while True:
+    def on_tick(token, msg):
+        if token == INDEX_TOKEN:
+            on_tick_index(msg)
+            # index logic
 
-        msg = feed.get_data()
+        elif token in {CE_ID, PE_ID}:
+            on_tick_option(msg)
+            # option logic
 
-        if msg:
-
-            if msg["security_id"] == INDEX_TOKEN:
-                on_tick_index(msg)
-
-            elif msg["security_id"] in (CE_ID, PE_ID):
-                on_tick_option(msg)
- 
+    for _, token in TOKENS:
+        subscribe(token, on_tick)
