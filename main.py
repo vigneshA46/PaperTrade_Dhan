@@ -11,8 +11,7 @@ import os
 # collect all tokens
 ALL_TOKENS = set()
 ALL_TOKENS.update(strategy1.TOKENS)
-ALL_TOKENS.update(startergy2.TOKENS)
-ALL_TOKENS.update(startergy3.TOKENS)
+
 
 access_token = get_access_token()
 CLIENT_ID = os.getenv("CLIENT_ID")
