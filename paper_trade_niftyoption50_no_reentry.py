@@ -17,7 +17,7 @@ from dispatcher import subscribe
 # CONFIG
 # =========================
 ATM = None 
-TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
+TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
 
 COMMON_ID = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
