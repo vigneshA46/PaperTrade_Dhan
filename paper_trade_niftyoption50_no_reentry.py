@@ -59,7 +59,6 @@ telemetry = {
 access_token = get_access_token()
 dhan = dhanhq(CLIENT_ID, access_token)
 
-builder = OneMinuteCandleBuilder()
 
 fno_df=load_fno_master()
 
@@ -316,6 +315,12 @@ PE_ID = str(pe_row["SECURITY_ID"])
 print("CE :", CE_ID)
 print("PE :", PE_ID)
 
+builders = {
+    CE_ID: OneMinuteCandleBuilder(),
+    PE_ID: OneMinuteCandleBuilder()
+}
+
+
 # Log CE leg
 logtradeleg(
     COMMON_ID,
@@ -329,7 +334,7 @@ logtradeleg(
 logtradeleg(
     COMMON_ID,
     "PE",
-    f"NIFTY CE {ATM}",
+    f"NIFTY PE {ATM}",
     ATM,
     str(today)
 )
@@ -493,7 +498,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
 
-    if total >= TARGET_POINTS:
+    if total >= TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
 
@@ -564,10 +569,20 @@ def on_candle(token, time_, candle):
 
 def on_message(msg):
 
-    candle = builder.process_tick(msg)
+    if msg.get("type") != "Quote Data":
+        return
 
     token = str(msg["security_id"])
     ltp = msg.get("LTP", 0)
+
+    builder = builders.get(token)
+
+    if not builder:
+        return
+
+    candle = builder.process_tick(msg)
+
+    token = str(msg["security_id"])
 
     # store LTP
     if token == CE_ID:
@@ -588,10 +603,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
+            print("CE",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
+            print("PE",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
@@ -621,8 +638,7 @@ instruments = [
 ]
 
 TOKENS = [
-    (marketfeed.NSE_FNO, CE_ID),
-    (marketfeed.NSE_FNO, PE_ID),
+  CE_ID , PE_ID
 ]
 
 MY_TOKENS = [CE_ID , PE_ID]
@@ -631,7 +647,6 @@ def on_tick(token, msg):
 
     if token not in MY_TOKENS:
         return  
-
     on_message(msg)
 
     

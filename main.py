@@ -17,8 +17,8 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 
 
 instruments = [
-    (exchange, token, marketfeed.Quote)
-    for (exchange, token) in ALL_TOKENS
+    (marketfeed.NSE_FNO, token, marketfeed.Quote)
+    for (token) in ALL_TOKENS
 ]
 
 feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
