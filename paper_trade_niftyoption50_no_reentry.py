@@ -123,8 +123,15 @@ def telemetry_broadcaster():
             payload = telemetry.copy()
 
             # 🔥 optional: sanitize (prevents TypeError)
-            payload = {k: (float(v) if isinstance(v, (int, float)) else v)
-                       for k, v in payload.items()}
+            def safe_number(x):
+                try:
+                    return float(x)
+                except:
+                    return 0
+
+            payload = {k: safe_number(v) if k in ["pnl","ce_pnl","pe_pnl","ce_ltp","pe_ltp","pnl_percentage"] else v
+                for k, v in payload.items()}
+
 
             res = requests.post(
                 "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
@@ -560,14 +567,14 @@ def on_message(msg):
     candle = builder.process_tick(msg)
 
     token = str(msg["security_id"])
-    ltp = msg.get("LTP")
+    ltp = msg.get("LTP", 0)
 
     # store LTP
     if token == CE_ID:
-        telemetry["ce_ltp"] = str(ltp)
+        telemetry["ce_ltp"] = float(ltp or 0)
 
     if token == PE_ID:
-        telemetry["pe_ltp"] = str(ltp)
+        telemetry["pe_ltp"] = float(ltp or 0)  
 
     # =========================
     # RUN UNIVERSAL EXIT (TICK LEVEL)
@@ -598,8 +605,8 @@ def on_message(msg):
     if pe_state["position"]:
         pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
-    telemetry["ce_pnl"] = str(ce_state["pnl"] + ce_running)
-    telemetry["pe_pnl"] = str(pe_state["pnl"] + pe_running)
+    telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
+    telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
     telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
 
 # ========================= 

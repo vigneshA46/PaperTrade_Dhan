@@ -12,10 +12,10 @@ from find_security import load_fno_master, find_option_security
 import threading
 from dispatcher import subscribe
 
-
 # =========================
 # CONFIG
 # =========================
+
 ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
@@ -52,6 +52,7 @@ fno_df = load_fno_master()
 # =========================
 # HELPERS
 # =========================
+
 
 
 def logtradeleg(strategyid, leg, symbol, strike_price, date):
@@ -139,7 +140,7 @@ def log_trade_event(
     lot,
     price,
     reason
-):
+        ):
     payload = {
         "run_id": COMMON_ID,
         "strategy_id": COMMON_ID,
@@ -165,6 +166,7 @@ def log_trade_event(
         requests.post(TRADE_LOG_URL, json=payload, timeout=3)
     except Exception as e:
         print("TRADE EVENT LOG ERROR:", e)
+
 def wait_for_start():
     print("⏳ Waiting for market...")
     while True:
@@ -181,13 +183,41 @@ telemetry = {
     "strategy_id": COMMON_ID,
     "run_id": COMMON_ID,
     "status": "RUNNING",
-    "pnl": 0,
-    "pnl_percentage": 0,
-    "ce_ltp": 0,
-    "pe_ltp": 0,
-    "ce_pnl": 0,
-    "pe_pnl": 0
+    "pnl": 0.0,
+    "pnl_percentage": 0.0,
+    "ce_ltp": 0.0,
+    "pe_ltp": 0.0,
+    "ce_pnl": 0.0,
+    "pe_pnl": 0.0
 }
+
+def telemetry_broadcaster():
+    while True:
+        try:
+            # 🔥 COPY to avoid mutation issues
+            payload = telemetry.copy()
+
+            # 🔥 optional: sanitize (prevents TypeError)
+            payload = {k: (float(v) if isinstance(v, (int, float)) else v)
+                       for k, v in payload.items()}
+
+            res = requests.post(
+                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
+                json=payload,
+                timeout=0.5   # 🔥 keep it LOW
+            )
+
+            # optional debug
+            if res.status_code != 200:
+                print("Telemetry failed:", res.status_code)
+
+        except Exception as e:
+            print("Telemetry error:", e)
+
+        time.sleep(1)
+
+t = threading.Thread(target=telemetry_broadcaster, daemon=True)
+t.start()
 
 
 
@@ -306,36 +336,6 @@ ce_state["marked"] = get_first_candle_mark(CE_ID)
 pe_state["marked"] = get_first_candle_mark(PE_ID)
 
 
-def telemetry_broadcaster():
-    while True:
-        try:
-            # 🔥 COPY to avoid mutation issues
-            payload = telemetry.copy()
-
-            # 🔥 optional: sanitize (prevents TypeError)
-            payload = {k: (float(v) if isinstance(v, (int, float)) else v)
-                       for k, v in payload.items()}
-
-            res = requests.post(
-                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
-                json=payload,
-                timeout=0.5   # 🔥 keep it LOW
-            )
-
-            # optional debug
-            if res.status_code != 200:
-                print("Telemetry failed:", res.status_code)
-
-        except Exception as e:
-            print("Telemetry error:", e)
-
-        time.sleep(1)
-
-t = threading.Thread(target=telemetry_broadcaster, daemon=True)
-t.start()
-
-
-
 def force_exit(state, name, token, ltp):
     global combined_pnl
 
@@ -369,6 +369,8 @@ def force_exit(state, name, token, ltp):
 # =========================
 # STRATEGY ENGINE
 # =========================
+
+
 def handle_leg(name, token, candle, state, ltp):
     global combined_pnl
 
@@ -405,7 +407,6 @@ def handle_leg(name, token, candle, state, ltp):
             combined_pnl += pnl
 
             log_trade_event(
-    
                 event_type="EXIT",
                 leg_name=name,
                 token=token,
@@ -457,7 +458,6 @@ def handle_leg(name, token, candle, state, ltp):
             print(f"🟢 BUY {name} @ {entry_price} LOT:{state['lot']}")
 
             log_trade_event(
-    
                 event_type="ENTRY",
                 leg_name=name,
                 token=token,
@@ -466,7 +466,7 @@ def handle_leg(name, token, candle, state, ltp):
                 lot=state["lot"],
                 price=entry_price,
                 reason="Trade opened"
-                )
+            )
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, f"Lot {state['lot']}")
 
@@ -485,7 +485,7 @@ def handle_leg(name, token, candle, state, ltp):
         print(f"🔴 EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
 
         log_trade_event(
-    
+           
             event_type="EXIT",
             leg_name=name,
             token=token,
@@ -494,7 +494,7 @@ def handle_leg(name, token, candle, state, ltp):
             lot=state["lot"],
             price=exit_price,
             reason="Below Mark"
-            )
+        )
 
         state["position"] = False
         state["pending_entry"] = False
@@ -589,7 +589,8 @@ def on_candle(token, time_, candle):
         last_prices["PE"] = candle["close"]
         handle_leg("PE", token, candle, pe_state)
 
-    universal_exit_check()
+    if "CE" in last_prices and "PE" in last_prices:
+        universal_exit_check(last_prices["CE"], last_prices["PE"])
 
 last_prices = {}
 
@@ -597,14 +598,14 @@ def on_message(msg):
     candle = builder.process_tick(msg)
 
     token = str(msg["security_id"])
-    ltp = msg.get("LTP")
+    ltp = float(msg.get("LTP", 0) or 0)
 
     # store LTP
     if token == CE_ID:
-        last_prices["CE"] = ltp
+        last_prices["CE"] = float(ltp or 0)
 
     if token == PE_ID:
-        last_prices["PE"] = ltp
+        last_prices["PE"] = float(ltp or 0)
 
     # =========================
     # UNIVERSAL EXIT (TICK LEVEL)
@@ -623,14 +624,34 @@ def on_message(msg):
         if token == PE_ID:
             handle_leg("PE", token, candle, pe_state, last_prices.get("PE"))
             
+
+    # =========================
+    # TELEMETRY UPDATE
+    # =========================
+
+    ce_ltp = float(last_prices.get("CE", 0) or 0)
+    pe_ltp = float(last_prices.get("PE", 0) or 0)
+
+    telemetry["ce_ltp"] = ce_ltp
+    telemetry["pe_ltp"] = pe_ltp
+
+    ce_running = 0
+    pe_running = 0
+
+    if ce_state["position"]:
+        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+
+    if pe_state["position"]:
+        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+
+    telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
+    telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
+    telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
+
+
 # =====================
 # START WS 
 # =====================
-
-
-instruments = [(marketfeed.NSE_FNO, CE_ID, marketfeed.Quote), 
-               (marketfeed.NSE_FNO, PE_ID, marketfeed.Quote) 
-]
 
 TOKENS = [
     (marketfeed.NSE_FNO, CE_ID),
@@ -647,8 +668,4 @@ def on_tick(token, msg):
     on_message(msg)
 for t in TOKENS:
     subscribe(t, on_tick)
-    
-
-
-
 
