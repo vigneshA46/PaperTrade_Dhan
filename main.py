@@ -1,7 +1,5 @@
 from dispatcher import publish
 import paper_trade_niftyoption50_no_reentry as strategy1
-import paper_trade_niftyoption50_reentry as startergy2
-import paper_trade_niftyoption35_reentry as startergy3
 from dhanhq import marketfeed
 from dhanhq import dhanhq
 from dhan_token import get_access_token

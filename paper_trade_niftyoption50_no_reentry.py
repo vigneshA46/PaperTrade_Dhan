@@ -588,9 +588,11 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
+            print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
+            print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
     # =========================

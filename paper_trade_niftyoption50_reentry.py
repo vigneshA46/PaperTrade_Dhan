@@ -666,6 +666,7 @@ def on_tick(token, msg):
         return  
 
     on_message(msg)
-for t in TOKENS:
+""" for t in TOKENS:
     subscribe(t, on_tick)
 
+ """

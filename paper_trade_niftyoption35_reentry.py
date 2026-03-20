@@ -576,7 +576,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 # CANDLE CALLBACK
 # =========================
 
-last_prices = {}
+""" last_prices = {}
 
 def on_candle(token, time_, candle):
     print("🕯", token, time_, candle)
@@ -591,7 +591,7 @@ def on_candle(token, time_, candle):
 
     if "CE" in last_prices and "PE" in last_prices:
         universal_exit_check(last_prices["CE"], last_prices["PE"])
-
+ """
 last_prices = {}
 
 def on_message(msg):
@@ -666,6 +666,7 @@ def on_tick(token, msg):
         return  
 
     on_message(msg)
-for t in TOKENS:
+""" for t in TOKENS:
     subscribe(t, on_tick)
 
+ """
