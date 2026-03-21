@@ -21,7 +21,7 @@ dhan = dhanhq(client_id, access_token)
 
 # Structure for subscribing is (exchange_segment, "security_id", subscription_type)
 
-instruments = [(marketfeed.NSE, "13", marketfeed.Quote),   # Ticker - Ticker Data
+instruments = [(marketfeed.MCX, "562667", marketfeed.Quote),   # Ticker - Ticker Data
 ]
 
 version = "v2"          # Mention Version and set to latest version 'v2'
@@ -39,6 +39,7 @@ try:
     while True:
         data.run_forever()
         response = data.get_data()
+        
 
         if response:
             candle = builder.process_tick(response)
@@ -46,6 +47,7 @@ try:
             if candle:
                 print("✅ 1-Min Candle Completed:")
                 print(candle)
+                print(response.get('LTP'))
         
 
 except Exception as e:

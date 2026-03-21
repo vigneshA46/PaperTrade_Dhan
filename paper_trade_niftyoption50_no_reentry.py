@@ -11,11 +11,24 @@ from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
 import threading
 from dispatcher import subscribe
+from queue import Queue
 
 
 # =========================
 # CONFIG
 # =========================
+trade_log_queue = Queue()
+def trade_log_worker():
+    while True:
+        payload = trade_log_queue.get()
+        try:
+            requests.post(TRADE_LOG_URL, json=payload, timeout=2)
+        except Exception as e:
+            print("TRADE EVENT LOG ERROR:", e)
+        finally:
+            trade_log_queue.task_done()
+
+
 ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
@@ -177,10 +190,8 @@ def logtradeleg(strategyid, leg, symbol, strike_price, date):
         print(f"⚠️ Error while calling API: {e}")
         return None
 
-
 def log_trade_event(
-    
-    event_type,   # ENTRY / EXIT
+    event_type,
     leg_name,
     token,
     symbol,
@@ -188,14 +199,13 @@ def log_trade_event(
     lot,
     price,
     reason
-    ):
+):
     payload = {
         "run_id": COMMON_ID,
         "strategy_id": COMMON_ID,
+        "trade_id": COMMON_ID,
 
-        "trade_id": COMMON_ID,         # 🔥 VERY IMPORTANT
-        "event_type": event_type,     # ENTRY / EXIT
-
+        "event_type": event_type,
         "leg_name": leg_name,
         "token": int(token),
         "symbol": symbol,
@@ -204,18 +214,14 @@ def log_trade_event(
         "lots": lot,
         "quantity": lot * LOTSIZE,
 
-        "price": price,
+        "price": float(price),  # 🔥 safety
 
         "reason": reason,
         "deployed_by": COMMON_ID
     }
 
-    try:
-        requests.post(TRADE_LOG_URL, json=payload, timeout=3)
-    except Exception as e:
-        print("TRADE EVENT LOG ERROR:", e)
-
-
+    # 🔥 NON-BLOCKING
+    trade_log_queue.put(payload)
 
         
 def wait_for_start():
@@ -252,6 +258,7 @@ def init_state():
 wait_for_start()
 
 print("\n🚀 NIFTY OPTION BUYING STARTED\n")
+threading.Thread(target=trade_log_worker, daemon=True).start()
 
 
 # =========================
@@ -417,7 +424,6 @@ def handle_leg(name, token, candle, state, ltp):
             state["signal_time"] = timestamp
 
             print("🟡 SIGNAL", name)
-            
 
             log_event(f"{name} BUY", token, "ENTRY_SIGNAL", close, "Entry condition met")
 
@@ -455,7 +461,7 @@ def handle_leg(name, token, candle, state, ltp):
     # =========================
     # EXIT CONDITION (STRUCTURE BREAK)
     # =========================
-    if state["position"] and close < state["marked"]:
+    if state["position"] and close < ltp:
 
         exit_price = ltp
 
@@ -553,18 +559,6 @@ def universal_exit_check(ce_ltp, pe_ltp):
 # =========================
 # CALLBACKS
 # =========================
-
-def on_candle(token, time_, candle):
-    print("🕯", token, time_, candle)
-    #print("security id",CE_ID,type(CE_ID),"token",token,type(token))
-
-    if token == CE_ID:   
-        handle_leg("CE", token, candle, ce_state)
-
-    if token == PE_ID:
-        handle_leg("PE", token, candle, pe_state)
-
-    
 
 
 def on_message(msg):
