@@ -11,10 +11,22 @@ from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
 import threading
 from dispatcher import subscribe
+from queue import Queue
+
 
 # =========================
 # CONFIG
 # =========================
+trade_log_queue = Queue()
+def trade_log_worker():
+    while True:
+        payload = trade_log_queue.get()
+        try:
+            requests.post(TRADE_LOG_URL, json=payload, timeout=2)
+        except Exception as e:
+            print("TRADE EVENT LOG ERROR:", e)
+        finally:
+            trade_log_queue.task_done()
 
 ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
@@ -45,15 +57,11 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 # =========================
 
 dhan = dhanhq(client_id, access_token)
-
-builder = OneMinuteCandleBuilder()
 fno_df = load_fno_master()
 
 # =========================
 # HELPERS
 # =========================
-
-
 
 def logtradeleg(strategyid, leg, symbol, strike_price, date):
     url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
@@ -161,11 +169,8 @@ def log_trade_event(
         "reason": reason,
         "deployed_by": COMMON_ID
     }
-
-    try:
-        requests.post(TRADE_LOG_URL, json=payload, timeout=3)
-    except Exception as e:
-        print("TRADE EVENT LOG ERROR:", e)
+   
+    trade_log_queue.put(payload)
 
 def wait_for_start():
     print("⏳ Waiting for market...")
@@ -225,7 +230,6 @@ def init_state():
     return {
         "marked": None,
         "position": False,
-        "pending_entry": False,
         "trading_disabled": False,
         "entry_price": None,
         "entry_time": None,
@@ -282,7 +286,7 @@ for i in range(len(timestamps)):
 print("Opening candles:", opening_candles)
 
 if opening_candles:
-    atm_price = float(opening_candles[-1]["close"])  
+    atm_price = float(opening_candles[0]["close"])  
     ATM = calculate_atm(atm_price)
     print("📌 ATM:", ATM)
    
@@ -304,6 +308,11 @@ PE_ID = str(pe_row["SECURITY_ID"])
 
 print("📌 CE:", CE_ID)
 print("📌 PE:", PE_ID)
+
+builders = {
+    CE_ID: OneMinuteCandleBuilder(),
+    PE_ID: OneMinuteCandleBuilder()
+}
 
 # Log CE leg
 logtradeleg(
@@ -336,36 +345,6 @@ ce_state["marked"] = get_first_candle_mark(CE_ID)
 pe_state["marked"] = get_first_candle_mark(PE_ID)
 
 
-def force_exit(state, name, token, ltp):
-    global combined_pnl
-
-    if state["position"]:
-        exit_price = ltp
-
-        pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
-
-        state["pnl"] += pnl
-        combined_pnl += pnl
-
-        print(f"🚨 FORCE EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
-
-        log_trade(
-            f"{name} BUY",
-            token,
-            "BUY",
-            state["lot"],
-            state["entry_price"],
-            state["entry_time"],
-            exit_price,
-            datetime.now(IST).isoformat(),
-            pnl,
-            combined_pnl,
-            "UNIVERSAL EXIT"
-        )
-
-        state["position"] = False
-
-
 # =========================
 # STRATEGY ENGINE
 # =========================
@@ -388,7 +367,6 @@ def handle_leg(name, token, candle, state, ltp):
     if state["rearm_required"]:
         if close < state["marked"]:
             state["rearm_required"] = False
-            state["pending_entry"] = False
             print(f"🔄 {name} REARMED")
         else:
             return
@@ -407,6 +385,7 @@ def handle_leg(name, token, candle, state, ltp):
             combined_pnl += pnl
 
             log_trade_event(
+                
                 event_type="EXIT",
                 leg_name=name,
                 token=token,
@@ -415,65 +394,53 @@ def handle_leg(name, token, candle, state, ltp):
                 lot=state["lot"],
                 price=exit_price,
                 reason="TIME EXIT"
-            )
+                )
 
             state["position"] = False
 
-        state["pending_entry"] = False
+
         state["trading_disabled"] = True
         return
 
+    # =========================
+    # STOP TRADING
+    # =========================
     if state["trading_disabled"]:
         return
 
-    # =========================
-    # ENTRY SIGNAL
-    # =========================
-    if not state["position"] and not state["pending_entry"]:
+    # =============================
+    # ENTRY SIGNAL AND EXECUTION
+    # =============================
+    if not state["position"]:
 
         if close > state["marked"] and avg > state["marked"] and avg < close:
 
-            state["pending_entry"] = True
-            state["signal_time"] = timestamp
-
-            print(f"🟡 {name} SIGNAL")
-
-            log_event(f"{name} BUY", token, "ENTRY_SIGNAL", close, "Condition met")
-
-    # =========================
-    # EXECUTE ENTRY (NEXT CANDLE)
-    # =========================
-    elif state["pending_entry"] and not state["position"]:
-
-        if timestamp != state["signal_time"]:
-
-            entry_price = candle["open"]
+            entry_price = ltp   
 
             state["entry_price"] = entry_price
             state["entry_time"] = datetime.now(IST).isoformat()
 
             state["position"] = True
-            state["pending_entry"] = False
 
-            print(f"🟢 BUY {name} @ {entry_price} LOT:{state['lot']}")
+            print("🟢 BUY", name, entry_price)
 
             log_trade_event(
                 event_type="ENTRY",
                 leg_name=name,
                 token=token,
-                symbol=SYMBOL,
+                symbol="NIFTY",
                 side="BUY",
                 lot=state["lot"],
                 price=entry_price,
                 reason="Trade opened"
-            )
+                )
 
-            log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, f"Lot {state['lot']}")
+            log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
 
     # =========================
-    # EXIT CONDITION
+    # EXIT CONDITION (STRUCTURE BREAK)
     # =========================
-    if state["position"] and close < state["marked"]:
+    if state["position"] and ltp < state["marked"]:
 
         exit_price = ltp
 
@@ -482,10 +449,10 @@ def handle_leg(name, token, candle, state, ltp):
         state["pnl"] += pnl
         combined_pnl += pnl
 
-        print(f"🔴 EXIT {name} @ {exit_price} PNL:{pnl:.2f}")
+        print("🔴 EXIT", name, exit_price)
 
         log_trade_event(
-           
+            
             event_type="EXIT",
             leg_name=name,
             token=token,
@@ -494,12 +461,11 @@ def handle_leg(name, token, candle, state, ltp):
             lot=state["lot"],
             price=exit_price,
             reason="Below Mark"
-        )
+                )
 
         state["position"] = False
-        state["pending_entry"] = False
-
         state["lot"] += 1
+
         state["rearm_required"] = True
 
 
@@ -567,82 +533,70 @@ def universal_exit_check(ce_ltp, pe_ltp):
         ce_state["trading_disabled"] = True
         pe_state["trading_disabled"] = True
 
-        ce_state["pending_entry"] = False
-        pe_state["pending_entry"] = False
 
 
 
 # =========================
-# CANDLE CALLBACK
+# CALLBACKS
 # =========================
 
-last_prices = {}
-
-def on_candle(token, time_, candle):
-    print("🕯", token, time_, candle)
-
-    if token == CE_ID:
-        last_prices["CE"] = candle["close"]
-        handle_leg("CE", token, candle, ce_state)
-
-    if token == PE_ID:
-        last_prices["PE"] = candle["close"]
-        handle_leg("PE", token, candle, pe_state)
-
-    if "CE" in last_prices and "PE" in last_prices:
-        universal_exit_check(last_prices["CE"], last_prices["PE"])
-
-last_prices = {}
 
 def on_message(msg):
+
+    if msg.get("type") != "Quote Data":
+        return
+
+    token = str(msg["security_id"])
+    ltp = msg.get("LTP", 0)
+
+    builder = builders.get(token)
+
+    if not builder:
+        return
+
     candle = builder.process_tick(msg)
 
     token = str(msg["security_id"])
-    ltp = float(msg.get("LTP", 0) or 0)
 
     # store LTP
     if token == CE_ID:
-        last_prices["CE"] = float(ltp or 0)
+        telemetry["ce_ltp"] = float(ltp or 0)
 
     if token == PE_ID:
-        last_prices["PE"] = float(ltp or 0)
+        telemetry["pe_ltp"] = float(ltp or 0)  
 
     # =========================
-    # UNIVERSAL EXIT (TICK LEVEL)
+    # RUN UNIVERSAL EXIT (TICK LEVEL)
     # =========================
-    if "CE" in last_prices and "PE" in last_prices:
-        universal_exit_check(last_prices["CE"], last_prices["PE"])
+    if "ce_ltp" in telemetry and "pe_ltp" in telemetry:
+        universal_exit_check(telemetry["ce_ltp"], telemetry["pe_ltp"])
 
     # =========================
-    # CANDLE PROCESSING
+    # CANDLE LOGIC
     # =========================
     if candle:
 
         if token == CE_ID:
-            handle_leg("CE", token, candle, ce_state, last_prices.get("CE"))
+            print("CE",token)
+            print(candle)
+            handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            handle_leg("PE", token, candle, pe_state, last_prices.get("PE"))
-            
+            print("PE",token)
+            print(candle)
+            handle_leg("PE", token, candle, pe_state, ltp)
 
     # =========================
-    # TELEMETRY UPDATE
+    # TELEMETRY (REAL-TIME PnL)
     # =========================
-
-    ce_ltp = float(last_prices.get("CE", 0) or 0)
-    pe_ltp = float(last_prices.get("PE", 0) or 0)
-
-    telemetry["ce_ltp"] = ce_ltp
-    telemetry["pe_ltp"] = pe_ltp
-
     ce_running = 0
     pe_running = 0
 
     if ce_state["position"]:
-        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+        ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
     if pe_state["position"]:
-        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+        pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
     telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
     telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
@@ -666,7 +620,6 @@ def on_tick(token, msg):
         return  
 
     on_message(msg)
-""" for t in TOKENS:
-    subscribe(t, on_tick)
 
- """
+for t in TOKENS:
+    subscribe(t, on_tick)
