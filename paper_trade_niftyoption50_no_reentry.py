@@ -241,7 +241,6 @@ def init_state():
     return {
         "marked": None,
         "position": False,
-        "pending_entry": False,
         "trading_disabled": False,
         "entry_price": None,
         "entry_time": None,
@@ -302,7 +301,7 @@ print("Opening candles:", opening_candles)
 
 
 if opening_candles:
-    atm_price = float(opening_candles[-1]["close"])  
+    atm_price = float(opening_candles[0]["close"])  
     ATM = calculate_atm(atm_price)
     print("📌 ATM:", ATM)
    
@@ -403,7 +402,7 @@ def handle_leg(name, token, candle, state, ltp):
 
             state["position"] = False
 
-        state["pending_entry"] = False
+
         state["trading_disabled"] = True
         return
 
@@ -413,38 +412,22 @@ def handle_leg(name, token, candle, state, ltp):
     if state["trading_disabled"]:
         return
 
-    # =========================
-    # ENTRY SIGNAL
-    # =========================
-    if not state["position"] and not state["pending_entry"]:
+    # =============================
+    # ENTRY SIGNAL AND EXECUTION
+    # =============================
+    if not state["position"]:
 
         if close > state["marked"] and avg > state["marked"] and avg < close:
 
-            state["pending_entry"] = True
-            state["signal_time"] = timestamp
-
-            print("🟡 SIGNAL", name)
-
-            log_event(f"{name} BUY", token, "ENTRY_SIGNAL", close, "Entry condition met")
-
-    # =========================
-    # EXECUTE ENTRY (NEXT CANDLE ONLY)
-    # =========================
-    elif state["pending_entry"] and not state["position"]:
-
-        # only next candle
-        if timestamp != state["signal_time"]:
-
-            entry_price = candle["open"]
+            entry_price = ltp   
 
             state["entry_price"] = entry_price
             state["entry_time"] = datetime.now(IST).isoformat()
 
             state["position"] = True
-            state["pending_entry"] = False
 
             print("🟢 BUY", name, entry_price)
-            # ✅ NEW EVENT LOG
+
             log_trade_event(
                 event_type="ENTRY",
                 leg_name=name,
@@ -458,10 +441,11 @@ def handle_leg(name, token, candle, state, ltp):
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
 
+
     # =========================
     # EXIT CONDITION (STRUCTURE BREAK)
     # =========================
-    if state["position"] and close < ltp:
+    if state["position"] and ltp < state["marked"]:
 
         exit_price = ltp
 
@@ -485,7 +469,7 @@ def handle_leg(name, token, candle, state, ltp):
                 )
 
         state["position"] = False
-        state["pending_entry"] = False
+
         state["lot"] += 1
 
 
@@ -552,8 +536,6 @@ def universal_exit_check(ce_ltp, pe_ltp):
         ce_state["trading_disabled"] = True
         pe_state["trading_disabled"] = True
 
-        ce_state["pending_entry"] = False
-        pe_state["pending_entry"] = False
 
 
 # =========================
