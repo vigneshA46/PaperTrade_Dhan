@@ -247,6 +247,8 @@ wait_for_start()
 
 print("\n🚀 NIFTY OPTION BUYING 50 STARTED\n")
 
+threading.Thread(target=trade_log_worker, daemon=True).start()
+
 # =========================
 # INDEX FIRST CANDLE
 # =========================
