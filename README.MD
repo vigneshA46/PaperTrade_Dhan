@@ -55,3 +55,51 @@ mcx crude oil stratergy
 bank nifty option buying
 
 range breakout selling
+
+
+
+//on option tick function in range breakout selling
+
+""" 
+def on_option_candle(token, t, row):
+    global ce_pos, pe_pos, pending_ce, pending_pe
+
+    if stop_trading:
+        return
+
+    # ---- EXECUTION ----
+    if token == CE_ID and pending_ce:
+        price = row["open"]
+        ce_pos = {
+            "entry_time": t,
+            "entry_price": price,
+            "best": price,
+            "sl": price - 15,
+            "trail": price - 30,
+            "active": False,
+        }
+        pending_ce = False
+        print("✅ CE SELL @", price, t)
+
+    if token == PE_ID and pending_pe:
+        price = row["open"]
+        pe_pos = {
+            "entry_time": t,
+            "entry_price": price,
+            "best": price,
+            "sl": price - 15,
+            "trail": price - 30,
+            "active": False,
+        }
+        pending_pe = False
+        print("✅ PE SELL @", price, t)
+
+    # ---- MANAGEMENT ----
+    if token == CE_ID and ce_pos:
+        manage_position("CE", row["close"], t)
+
+    if token == PE_ID and pe_pos:
+        manage_position("PE", row["close"], t)
+
+
+ """

@@ -29,7 +29,7 @@ def trade_log_worker():
             trade_log_queue.task_done()
 
 ATM = None 
-TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/papertradelogger"
+TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
 
 COMMON_ID = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"
@@ -147,7 +147,9 @@ def log_trade_event(
     side,
     lot,
     price,
-    reason
+    reason,
+    pnl,
+    cum_pnl
         ):
     payload = {
         "run_id": COMMON_ID,
@@ -167,7 +169,10 @@ def log_trade_event(
         "price": price,
 
         "reason": reason,
-        "deployed_by": COMMON_ID
+        "deployed_by": COMMON_ID,
+
+        "pnl": str(pnl),
+        "cum_pnl":str(cum_pnl)
     }
    
     trade_log_queue.put(payload)
@@ -396,6 +401,8 @@ def handle_leg(name, token, candle, state, ltp):
                 lot=state["lot"],
                 price=exit_price,
                 reason="TIME EXIT"
+                pnl= state["pnl"],
+                cum_pnl=pnl
                 )
 
             state["position"] = False
@@ -435,6 +442,8 @@ def handle_leg(name, token, candle, state, ltp):
                 lot=state["lot"],
                 price=entry_price,
                 reason="Trade opened"
+                pnl= state["pnl"],
+                cum_pnl=pnl
                 )
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
@@ -463,6 +472,8 @@ def handle_leg(name, token, candle, state, ltp):
             lot=state["lot"],
             price=exit_price,
             reason="Below Mark"
+            pnl= state["pnl"],
+            cum_pnl=pnl
                 )
 
         state["position"] = False
@@ -507,6 +518,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 lot=ce_state["lot"],
                 price=exit_price,
                 reason="UNIVERSAL EXIT"
+                pnl= ce_state["pnl"],
+                cum_pnl=pnl
                 )   
 
             ce_state["position"] = False
@@ -527,6 +540,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 lot=pe_state["lot"],
                 price=exit_price,
                 reason="UNIVERSAL EXIT"
+                pnl= ce_state["pnl"],
+                cum_pnl=pnl
                 )
 
             pe_state["position"] = False

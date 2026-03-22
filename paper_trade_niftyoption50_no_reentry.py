@@ -38,7 +38,7 @@ SYMBOL = "NIFTY"
 
 load_dotenv()
 
-STRATEGY_NAME = "NIFTY_OPTION_BUYING_50"
+STRATEGY_NAME = "NIFTY_OPTION_BUYING_50 no reentry"
 
 CLIENT_ID = os.getenv("CLIENT_ID")
 
@@ -198,8 +198,10 @@ def log_trade_event(
     side,
     lot,
     price,
-    reason
-):
+    reason,
+    pnl,
+    cum_pnl
+        ):
     payload = {
         "run_id": COMMON_ID,
         "strategy_id": COMMON_ID,
@@ -217,7 +219,9 @@ def log_trade_event(
         "price": float(price),  # 🔥 safety
 
         "reason": reason,
-        "deployed_by": COMMON_ID
+        "deployed_by": COMMON_ID,
+        "pnl": str(pnl),
+        "cum_pnl": str(cum_pnl),
     }
 
     # 🔥 NON-BLOCKING
@@ -389,7 +393,6 @@ def handle_leg(name, token, candle, state, ltp):
             combined_pnl += pnl
 
             log_trade_event(
-                
                 event_type="EXIT",
                 leg_name=name,
                 token=token,
@@ -398,6 +401,8 @@ def handle_leg(name, token, candle, state, ltp):
                 lot=state["lot"],
                 price=exit_price,
                 reason="TIME EXIT"
+                pnl= state["pnl"],
+                cum_pnl=pnl
                 )
 
             state["position"] = False
@@ -436,7 +441,9 @@ def handle_leg(name, token, candle, state, ltp):
                 side="BUY",
                 lot=state["lot"],
                 price=entry_price,
-                reason="Trade opened"
+                reason="Trade opened",
+                pnl= state["pnl"],
+                cum_pnl= pnl
                 )
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
@@ -466,6 +473,8 @@ def handle_leg(name, token, candle, state, ltp):
             lot=state["lot"],
             price=exit_price,
             reason="Below Mark"
+            pnl=state["pnl"],
+            cum_pnl=pnl
                 )
 
         state["position"] = False
@@ -508,6 +517,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 lot=ce_state["lot"],
                 price=exit_price,
                 reason="UNIVERSAL EXIT"
+                pnl= ce_state["pnl"],
+                cum_pnl=pnl
                 )   
 
             ce_state["position"] = False
@@ -527,7 +538,9 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=pe_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT"
+                reason="UNIVERSAL EXIT",
+                pnl=pe_state["pnl"],
+                cum_pnl=pnl
                 )
 
             pe_state["position"] = False
