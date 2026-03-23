@@ -557,6 +557,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 
 def on_message(msg):
+    print(msg)
 
     if msg.get("type") != "Quote Data":
         return
@@ -635,9 +636,11 @@ MY_TOKENS = [CE_ID , PE_ID]
 def on_tick(token, msg):
 
     if token not in MY_TOKENS:
+        print("token not in tokens")
         return  
     on_message(msg)
 
-    
+"""     
 for t in TOKENS:
     subscribe(t, on_tick)
+ """

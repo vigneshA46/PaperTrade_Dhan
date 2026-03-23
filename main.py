@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 import os
 
 # collect all tokens
-ALL_TOKENS = set()
-ALL_TOKENS.update(strategy1.TOKENS)
-ALL_TOKENS.update(strategy2.TOKENS)
+ALL_TOKENS = set()  
+""" ALL_TOKENS.update(strategy1.TOKENS)
+ALL_TOKENS.update(strategy2.TOKENS) """
 ALL_TOKENS.update(strategy3.TOKENS)
 
 
