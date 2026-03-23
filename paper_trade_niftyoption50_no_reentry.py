@@ -409,7 +409,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 
         state["trading_disabled"] = True
-        return
+            return
 
     # =========================
     # STOP TRADING
