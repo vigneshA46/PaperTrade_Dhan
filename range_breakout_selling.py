@@ -56,8 +56,8 @@ DAY_TARGET = -38
 LOT = 1
 LOTSIZE= 65
 
-#today = datetime.now(IST).strftime("%Y-%m-%d")
-today = "2024-09-11"
+today = datetime.now(IST).strftime("%Y-%m-%d")
+""" today = "2024-09-11" """
 
 # =========================
 # LOGIN
@@ -148,6 +148,34 @@ def telemetry_broadcaster():
 
 t = threading.Thread(target=telemetry_broadcaster, daemon=True)
 t.start()
+
+
+
+def logtradeleg(strategyid, leg, symbol, strike_price, date):
+    url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
+    
+    payload = {
+        "strategy_id": strategyid,
+        "leg": leg,
+        "symbol": symbol,
+        "strike_price": strike_price,
+        "date": date
+    }
+
+    try:
+        response = requests.post(url, json=payload)
+
+        if response.status_code == 200 or response.status_code == 201:
+            print("✅ Trade leg logged successfully")
+            return response.json()
+        else:
+            print(f"❌ Failed to log trade leg: {response.status_code}")
+            print(response.text)
+            return None
+
+    except Exception as e:
+        print(f"⚠️ Error while calling API: {e}")
+        return None
 
 
 
@@ -281,6 +309,29 @@ def mark_range():
 
     CE_ID = str(ce_row["SECURITY_ID"])
     PE_ID = str(pe_row["SECURITY_ID"])
+
+    
+    # Log CE leg
+    logtradeleg(
+        COMMON_ID,
+        "CE",
+        f"NIFTY CE {ATM}",
+        ATM,
+        str(today)
+    )
+
+    # Log PE leg
+    logtradeleg(
+        COMMON_ID,
+        "PE",
+        f"NIFTY PE {ATM}",
+        ATM,
+        str(today)
+    )   
+
+    print("legs logged successfully")
+
+
 
     print("\n📏 RANGE MARKED")
     print("TOP    :", top_line)
