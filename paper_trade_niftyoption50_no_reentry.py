@@ -39,7 +39,6 @@ SYMBOL = "NIFTY"
 load_dotenv()
 
 STRATEGY_NAME = "NIFTY_OPTION_BUYING_50 no reentry"
-
 CLIENT_ID = os.getenv("CLIENT_ID")
 
 IST = pytz.timezone("Asia/Kolkata")
@@ -322,6 +321,7 @@ pe_row = find_option_security(fno_df, ATM, "PE", today_date, "NIFTY")
 
 CE_ID = str(ce_row["SECURITY_ID"])
 PE_ID = str(pe_row["SECURITY_ID"])
+
 print("CE :", CE_ID)
 print("PE :", PE_ID)
 
@@ -557,11 +557,11 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 
 def on_message(msg):
-    print(msg)
 
     if msg.get("type") != "Quote Data":
         return
 
+    
     token = str(msg["security_id"])
     ltp = msg.get("LTP", 0)
 
@@ -593,12 +593,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("CE",token)
+            print("50 noreentry CE",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("PE",token)
+            print("50 noreentry PE",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
@@ -622,10 +622,6 @@ def on_message(msg):
 # START WEBSOCKET
 # =========================
 
-instruments = [
-    (marketfeed.NSE_FNO, CE_ID, marketfeed.Quote),
-    (marketfeed.NSE_FNO, PE_ID, marketfeed.Quote)
-]
 
 TOKENS = [
   CE_ID , PE_ID
@@ -640,7 +636,6 @@ def on_tick(token, msg):
         return  
     on_message(msg)
 
-"""     
+    
 for t in TOKENS:
     subscribe(t, on_tick)
- """

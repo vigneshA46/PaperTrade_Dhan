@@ -201,6 +201,7 @@ telemetry = {
     "pe_pnl": 0.0
 }
 
+
 def telemetry_broadcaster():
     while True:
         try:
@@ -208,8 +209,15 @@ def telemetry_broadcaster():
             payload = telemetry.copy()
 
             # 🔥 optional: sanitize (prevents TypeError)
-            payload = {k: (float(v) if isinstance(v, (int, float)) else v)
-                       for k, v in payload.items()}
+            def safe_number(x):
+                try:
+                    return float(x)
+                except:
+                    return 0
+
+            payload = {k: safe_number(v) if k in ["pnl","ce_pnl","pe_pnl","ce_ltp","pe_ltp","pnl_percentage"] else v
+                for k, v in payload.items()}
+
 
             res = requests.post(
                 "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
@@ -225,6 +233,7 @@ def telemetry_broadcaster():
             print("Telemetry error:", e)
 
         time.sleep(1)
+
 
 t = threading.Thread(target=telemetry_broadcaster, daemon=True)
 t.start()
@@ -347,6 +356,8 @@ logtradeleg(
 
 ce_state = init_state()
 pe_state = init_state()
+
+combined_pnl=0
 
 ce_state["marked"] = get_first_candle_mark(CE_ID)
 pe_state["marked"] = get_first_candle_mark(PE_ID)
@@ -562,7 +573,7 @@ def on_message(msg):
 
     if msg.get("type") != "Quote Data":
         return
-
+    
     token = str(msg["security_id"])
     ltp = msg.get("LTP", 0)
 
@@ -594,12 +605,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("CE",token)
+            print("50 reentry CE",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("PE",token)
+            print("50 reentry PE",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
@@ -624,10 +635,6 @@ def on_message(msg):
 # START WS 
 # =====================
 
-TOKENS = [
-    (marketfeed.NSE_FNO, CE_ID),
-    (marketfeed.NSE_FNO, PE_ID),
-]
 
 MY_TOKENS = [CE_ID , PE_ID]
 
@@ -637,7 +644,6 @@ def on_tick(token, msg):
         return  
 
     on_message(msg)
-""" 
-for t in TOKENS:
+
+for t in MY_TOKENS:
     subscribe(t, on_tick)
- """

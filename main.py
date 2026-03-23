@@ -9,16 +9,16 @@ from dotenv import load_dotenv
 import os
 
 # collect all tokens
-ALL_TOKENS = set()  
-""" ALL_TOKENS.update(strategy1.TOKENS)
-ALL_TOKENS.update(strategy2.TOKENS) """
-ALL_TOKENS.update(strategy3.TOKENS)
+ALL_TOKENS = set()
+ALL_TOKENS.update(strategy1.TOKENS)
+#ALL_TOKENS.update(strategy2.TOKENS)
+#ALL_TOKENS.update(strategy3.TOKENS)
 
 
 access_token = get_access_token()
 CLIENT_ID = os.getenv("CLIENT_ID")
 
-
+print("ALL TOKENS",ALL_TOKENS)
 
 instruments = [
     (marketfeed.NSE_FNO, token, marketfeed.Quote)
@@ -29,7 +29,8 @@ feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
 
 def on_message(msg):
     token = str(msg["security_id"])
-    publish(token, msg)   # 🔥 send tick to correct strategies
+    publish(token, msg)  # 🔥 send tick to correct strategies
+    
 
 while True:
     try:
