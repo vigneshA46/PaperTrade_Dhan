@@ -413,7 +413,7 @@ def handle_leg(name, token, candle, state, ltp):
                 price=exit_price,
                 reason="TIME EXIT",
                 pnl= state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )
 
             state["position"] = False
@@ -454,7 +454,7 @@ def handle_leg(name, token, candle, state, ltp):
                 price=entry_price,
                 reason="Trade opened",
                 pnl= state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
@@ -484,7 +484,7 @@ def handle_leg(name, token, candle, state, ltp):
             price=exit_price,
             reason="Below Mark",
             pnl= state["pnl"],
-            cum_pnl=pnl
+            cum_pnl=combined_pnl
                 )
 
         state["position"] = False
@@ -507,9 +507,10 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["position"]:
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
-    total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
+    total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
+    combined_pnl=total
 
-    if total >= TARGET_POINTS:
+    if total >= TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
 
@@ -530,7 +531,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
                 pnl= ce_state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )   
 
             ce_state["position"] = False
@@ -552,7 +553,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
                 pnl= ce_state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )
 
             pe_state["position"] = False
@@ -575,7 +576,7 @@ def on_message(msg):
         return
     
     token = str(msg["security_id"])
-    ltp = msg.get("LTP", 0)
+    ltp = float(msg.get("LTP", 0))
 
     builder = builders.get(token)
 
@@ -636,14 +637,15 @@ def on_message(msg):
 # =====================
 
 
-MY_TOKENS = [CE_ID , PE_ID]
+TOKENS = [CE_ID , PE_ID]
 
 def on_tick(token, msg):
 
-    if token not in MY_TOKENS:
+    if token not in TOKENS:
         return  
 
     on_message(msg)
 
-for t in MY_TOKENS:
+for t in TOKENS:
     subscribe(t, on_tick)
+    
