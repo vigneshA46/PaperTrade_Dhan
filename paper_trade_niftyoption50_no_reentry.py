@@ -400,7 +400,7 @@ def handle_leg(name, token, candle, state, ltp):
                 side="SELL",
                 lot=state["lot"],
                 price=exit_price,
-                reason="TIME EXIT"
+                reason="TIME EXIT",
                 pnl= state["pnl"],
                 cum_pnl=pnl
                 )
@@ -409,7 +409,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 
         state["trading_disabled"] = True
-            return
+        return
 
     # =========================
     # STOP TRADING
@@ -472,7 +472,7 @@ def handle_leg(name, token, candle, state, ltp):
             side="SELL",
             lot=state["lot"],
             price=exit_price,
-            reason="Below Mark"
+            reason="Below Mark",
             pnl=state["pnl"],
             cum_pnl=pnl
                 )
@@ -516,7 +516,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=ce_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT"
+                reason="UNIVERSAL EXIT",
                 pnl= ce_state["pnl"],
                 cum_pnl=pnl
                 )   
