@@ -296,7 +296,7 @@ def init_state():
         "lot": 1,
         "pnl": 0.0,
         "symbol": None,
-        "rearm_required": False
+        "rearm_required": False,
         "tsl": None,
         "sl": None,
         "trailing_active": False
