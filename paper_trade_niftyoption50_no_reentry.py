@@ -163,7 +163,7 @@ t = threading.Thread(target=telemetry_broadcaster, daemon=True)
 t.start()
 
 
-def logtradeleg(strategyid, leg, symbol, strike_price, date):
+def logtradeleg(strategyid, leg, symbol, strike_price, date, token):
     url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
     
     payload = {
@@ -171,7 +171,8 @@ def logtradeleg(strategyid, leg, symbol, strike_price, date):
         "leg": leg,
         "symbol": symbol,
         "strike_price": strike_price,
-        "date": date
+        "date": date,
+        "token":str(token)
     }
 
     try:
@@ -337,7 +338,8 @@ logtradeleg(
     "CE",
     f"NIFTY CE {ATM}",
     ATM,
-    str(today)
+    str(today),
+    CE_ID
 )
 
 # Log PE leg
@@ -346,7 +348,8 @@ logtradeleg(
     "PE",
     f"NIFTY PE {ATM}",
     ATM,
-    str(today)
+    str(today),
+    PE_ID
 )
 
 
@@ -634,9 +637,10 @@ def on_tick(token, msg):
 
     if token not in MY_TOKENS:
         print("token not in tokens")
-        return  
+        return
     on_message(msg)
 
     
 for t in TOKENS:
     subscribe(t, on_tick)
+ 

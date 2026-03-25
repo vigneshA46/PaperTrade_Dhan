@@ -151,7 +151,7 @@ t.start()
 
 
 
-def logtradeleg(strategyid, leg, symbol, strike_price, date):
+def logtradeleg(strategyid, leg, symbol, strike_price, date, token):
     url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
     
     payload = {
@@ -159,7 +159,8 @@ def logtradeleg(strategyid, leg, symbol, strike_price, date):
         "leg": leg,
         "symbol": symbol,
         "strike_price": strike_price,
-        "date": date
+        "date": date,
+        "token": token
     }
 
     try:
@@ -317,7 +318,8 @@ def mark_range():
         "CE",
         f"NIFTY CE {ATM}",
         ATM,
-        str(today)
+        str(today),
+        CE_ID
     )
 
     # Log PE leg
@@ -326,7 +328,8 @@ def mark_range():
         "PE",
         f"NIFTY PE {ATM}",
         ATM,
-        str(today)
+        str(today),
+        PE_ID
     )   
 
     print("legs logged successfully")

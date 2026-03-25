@@ -38,6 +38,7 @@ This is an intraday NIFTY option buying strategy (MIS) where strike selection is
 
 Alongside the normal exit, the strategy uses a fixed cumulative target of 100 points and a dynamic trailing stop-loss (TSL). The initial TSL is placed at +30 points from the entry price, and trailing becomes active only when any candle touches this TSL level. Once activated, the stop-loss is set 10 points below the TSL. If price continues to move in favor and advances 10 points above the current TSL, both the TSL and SL are moved up by 10 points, progressively locking in profits. During the trailing phase, the trade exits only when a candle closes below the current SL. After a TSL-based exit or target hit, the next trade is always taken with 1 lot, and a fresh entry is allowed only after price first moves below the marked line and then again satisfies the original entry conditions, ensuring disciplined resets before re-entry.
 
+
 google sheet logging
 
 vwap option buying -- not done
