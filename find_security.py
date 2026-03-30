@@ -50,6 +50,9 @@ def load_fno_master() -> pd.DataFrame:
 
     return df
 
+
+
+
 def find_option_security(df, strike, option_type, trade_date, target_symbol):
     trade_date = pd.to_datetime(trade_date)
 
