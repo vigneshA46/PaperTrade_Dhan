@@ -510,12 +510,14 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["position"]:
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
-    total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
+    #total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
     #combined_pnl=total
+    ce_total = float(ce_state["pnl"] + ce_running)
+    pe_total = float(pe_state["pnl"] + pe_running)
 
-    if total >= TARGET_POINTS*65:
+    if ce_total>= TARGET_POINTS*65:
 
-        print("🏁 TARGET HIT", total)
+        print("🏁 CE TARGET HIT", ce_total)
 
         # FORCE EXIT CE
         if ce_state["position"]:
@@ -537,10 +539,17 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 pnl= ce_state["pnl"],
                 cum_pnl=combined_pnl
                 )   
-
+            ce_state["pnl"]=0.0
             ce_state["position"] = False
+            ce_state["lot"] = 1
+            ce_state["trading_disabled"] = False
+            ce_state["rearm_required"] = True
 
-        # FORCE EXIT PE
+  if pe_total >= TARGET_POINTS*65:
+
+        print("🏁 PE TARGET HIT", pe_total)
+
+
         if pe_state["position"]:
             exit_price = pe_ltp
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
@@ -561,16 +570,12 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 cum_pnl=combined_pnl
                 )
 
-            pe_state["position"] = False
-
-        ce_state["lot"] = 1
+        pe_state["position"] = False
+        pe_state["pnl"]=0.0
         pe_state["lot"] = 1
-
-        ce_state["trading_disabled"] = False
         pe_state["trading_disabled"] = False
-
-        ce_state["rearm_required"] = True
         pe_state["rearm_required"] = True
+
 
 
 
