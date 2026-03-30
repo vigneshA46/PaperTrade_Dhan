@@ -511,7 +511,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
     total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
-    combined_pnl=total
+    #combined_pnl=total
 
     if total >= TARGET_POINTS*65:
 
@@ -523,6 +523,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             ce_state["pnl"] += pnl
+            combined_pnl+=pnl
 
             log_trade_event(
                 event_type="EXIT",
@@ -545,6 +546,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             pe_state["pnl"] += pnl
+            combined_pnl+=pnl
 
             log_trade_event(
                 event_type="EXIT",
@@ -555,15 +557,20 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 lot=pe_state["lot"],
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
-                pnl= ce_state["pnl"],
+                pnl= pe_state["pnl"],
                 cum_pnl=combined_pnl
                 )
 
             pe_state["position"] = False
 
-        # STOP EVERYTHING
-        ce_state["trading_disabled"] = True
-        pe_state["trading_disabled"] = True
+        ce_state["lot"] = 1
+        pe_state["lot"] = 1
+
+        ce_state["trading_disabled"] = False
+        pe_state["trading_disabled"] = False
+
+        ce_state["rearm_required"] = True
+        pe_state["rearm_required"] = True
 
 
 
