@@ -19,6 +19,7 @@ from queue import Queue
 # CONFIG
 # =========================
 trade_log_queue = Queue()
+
 def trade_log_worker():
     while True:
         payload = trade_log_queue.get()
@@ -29,6 +30,7 @@ def trade_log_worker():
         finally:
             trade_log_queue.task_done()
 
+threading.Thread(target=trade_log_worker, daemon=True).start()
 
 ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
@@ -408,7 +410,7 @@ def handle_leg(name, token, candle, state, ltp):
                 price=exit_price,
                 reason="TIME EXIT",
                 pnl= state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )
 
             state["position"] = False
@@ -443,7 +445,7 @@ def handle_leg(name, token, candle, state, ltp):
 
             state["position"] = True
             state["tsl"] = entry_price + 30
-            state["sl"] = None
+            state["sl"] = entry_price - 10 
             state["trailing_active"] = False
 
             print("🟢 BUY", name, entry_price)
@@ -458,7 +460,7 @@ def handle_leg(name, token, candle, state, ltp):
                 price=entry_price,
                 reason="Trade opened",
                 pnl= state["pnl"],
-                cum_pnl= pnl
+                cum_pnl= combined_pnl
                 )
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
@@ -498,7 +500,7 @@ def handle_leg(name, token, candle, state, ltp):
                 price=exit_price,
                 reason="TSL HIT",
                 pnl=state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
             )
 
             state["position"] = False
@@ -531,7 +533,7 @@ def handle_leg(name, token, candle, state, ltp):
             price=exit_price,
             reason="Below Mark",
             pnl=state["pnl"],
-            cum_pnl=pnl
+            cum_pnl=combined_pnl
                 )
 
         state["position"] = False
@@ -573,9 +575,9 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=ce_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT"
+                reason="UNIVERSAL EXIT",
                 pnl= ce_state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )   
 
             ce_state["position"] = False
@@ -597,7 +599,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
                 pnl=pe_state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )
 
             pe_state["position"] = False
@@ -614,6 +616,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 
 def on_message(msg):
+
+    global combined_pnl
 
     if msg.get("type") != "Quote Data":
         return
@@ -635,7 +639,84 @@ def on_message(msg):
         telemetry["ce_ltp"] = float(ltp or 0)
 
     if token == PE_ID:
-        telemetry["pe_ltp"] = float(ltp or 0)  
+        telemetry["pe_ltp"] = float(ltp or 0)
+
+# =========================
+# Entry +8 Breakout
+# =========================
+
+    if token == CE_ID:
+        state = ce_state
+        leg_name = "CE"
+    elif token == PE_ID:
+        state = pe_state
+        leg_name = "PE"
+    else:
+        state = None
+
+    if state and not state["position"] and not state["trading_disabled"]:
+
+        if ltp >= state["marked"] + 8:
+
+            entry_price = ltp
+
+            state["entry_price"] = entry_price
+            state["entry_time"] = datetime.now(IST).isoformat()
+
+            state["position"] = True
+            state["tsl"] = entry_price + 30
+            state["sl"] = entry_price - 10
+            state["trailing_active"] = False
+
+            print("🟢 BUY (TICK +8)", leg_name, entry_price)
+
+            log_trade_event(
+                event_type="ENTRY",
+                leg_name=leg_name,
+                token=token,
+                symbol="NIFTY",
+                side="BUY",
+                lot=state["lot"],
+                price=entry_price,
+                reason="TICK +8 ENTRY",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+# =========================
+# -8 EXIT (TICK LEVEL)
+# =========================
+    if state and state["position"]:
+
+        if ltp <= state["marked"] - 8:
+
+            exit_price = ltp
+
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+
+            state["pnl"] += pnl
+            combined_pnl += pnl
+
+            print("🔴 EXIT (-8 TICK)", leg_name, exit_price)
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name=leg_name,
+                token=token,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=state["lot"],
+                price=exit_price,
+                reason="TICK EXIT -8",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            state["position"] = False
+            state["lot"] += 1
+
+            return  
+
 
     # =========================
     # RUN UNIVERSAL EXIT (TICK LEVEL)
