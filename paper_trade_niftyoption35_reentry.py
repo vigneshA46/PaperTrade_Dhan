@@ -44,18 +44,18 @@ access_token = get_access_token()
 
 IST = pytz.timezone("Asia/Kolkata")
 
-TRADE_START = dtime(9, 15)
+TRADE_START = dtime(9, 16)
 TRADE_END   = dtime(15, 20)
 
 TARGET_POINTS = 35
 LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
-
 # =========================
 # LOGIN
 # =========================
 
+combined_exit_active = False
 dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
 
@@ -388,6 +388,10 @@ def handle_leg(name, token, candle, state, ltp):
     if state["rearm_required"]:
         if close < state["marked"]:
             state["rearm_required"] = False
+
+            global combined_exit_active
+            combined_exit_active = False   # 🔥 UNLOCK next cycle
+
             print(f"🔄 {name} REARMED")
         else:
             return
@@ -496,10 +500,9 @@ def handle_leg(name, token, candle, state, ltp):
         state["rearm_required"] = True
 
 
-
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl
+    global combined_pnl, combined_exit_active
 
     ce_running = 0
     pe_running = 0
@@ -510,22 +513,27 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["position"]:
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
-    #total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
-    #combined_pnl=total
-    ce_total = float(ce_state["pnl"] + ce_running)
-    pe_total = float(pe_state["pnl"] + pe_running)
+    ce_total = ce_state["pnl"] + ce_running
+    pe_total = pe_state["pnl"] + pe_running
 
-    if ce_total>= TARGET_POINTS*65:
+    combined_total = ce_total + pe_total
 
-        print("🏁 CE TARGET HIT", ce_total)
+    # =========================
+    # ✅ COMBINED EXIT (TICK LEVEL SAFE)
+    # =========================
+    if combined_total >= TARGET_POINTS * LOTSIZE and not combined_exit_active:
 
-        # FORCE EXIT CE
+        print("🏁 COMBINED TARGET HIT", combined_total)
+
+        combined_exit_active = True   # 🔥 LOCK
+
+        # EXIT CE
         if ce_state["position"]:
             exit_price = ce_ltp
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             ce_state["pnl"] += pnl
-            combined_pnl+=pnl
+            combined_pnl += pnl
 
             log_trade_event(
                 event_type="EXIT",
@@ -535,27 +543,18 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=ce_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT",
-                pnl= ce_state["pnl"],
+                reason="COMBINED EXIT",
+                pnl=ce_state["pnl"],
                 cum_pnl=combined_pnl
-                )   
-        ce_state["pnl"]=0.0
-        ce_state["position"] = False
-        ce_state["lot"] = 1
-        ce_state["trading_disabled"] = False
-        ce_state["rearm_required"] = True
+            )
 
-    if pe_total >= TARGET_POINTS*65:
-
-        print("🏁 PE TARGET HIT", pe_total)
-
-
+        # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             pe_state["pnl"] += pnl
-            combined_pnl+=pnl
+            combined_pnl += pnl
 
             log_trade_event(
                 event_type="EXIT",
@@ -565,16 +564,20 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=pe_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT",
-                pnl= pe_state["pnl"],
+                reason="COMBINED EXIT",
+                pnl=pe_state["pnl"],
                 cum_pnl=combined_pnl
-                )
+            )
 
-        pe_state["position"] = False
-        pe_state["pnl"]=0.0
-        pe_state["lot"] = 1
-        pe_state["trading_disabled"] = False
-        pe_state["rearm_required"] = True
+        # RESET STATES
+        for state in [ce_state, pe_state]:
+            state["position"] = False
+            state["pnl"] = 0.0
+            state["lot"] = 1
+            state["trading_disabled"] = False
+            state["rearm_required"] = True
+
+        return   # 🚨 prevent further checks
 
 
 # =========================
