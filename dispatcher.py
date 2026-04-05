@@ -3,7 +3,10 @@ import threading
 from datetime import datetime, time as dtime
 import pytz
 import requests
+from dhan_token import get_access_token
 
+
+ACCESS_TOKEN = get_access_token()
 
 
 IST = pytz.timezone("Asia/Kolkata")

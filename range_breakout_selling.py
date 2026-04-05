@@ -577,7 +577,7 @@ if __name__ == "__main__":
     mark_range()
 
     instruments = [
-        (marketfeed.NSE, INDEX_TOKEN),
+        (marketfeed.IDX, INDEX_TOKEN),
         (marketfeed.NSE_FNO, CE_ID),
         (marketfeed.NSE_FNO, PE_ID)
     ]

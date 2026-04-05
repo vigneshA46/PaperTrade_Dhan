@@ -572,8 +572,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
         # RESET STATES
         for state in [ce_state, pe_state]:
             state["position"] = False
-            state["pnl"] = 0.0
             state["lot"] = 1
+            TARGET_POINTS = TARGET_POINTS + 35
             state["trading_disabled"] = False
             state["rearm_required"] = True
 

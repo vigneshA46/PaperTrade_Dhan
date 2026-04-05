@@ -394,6 +394,7 @@ def handle_leg(name, token, candle, state, ltp):
 
             state["pnl"] += pnl
             combined_pnl += pnl
+                
 
             log_trade_event(
                 event_type="EXIT",

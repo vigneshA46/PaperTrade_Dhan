@@ -6,7 +6,7 @@ from dhanhq import marketfeed
 
     # 🔑 Replace with your credentials
 CLIENT_ID = "1107425275"
-ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzc1MTE3NTk4LCJpYXQiOjE3NzUwMzExOTgsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA3NDI1Mjc1In0.pDC39gkDfcI3zPYm3ziXNTf3hT-fgCyR1c6rwzrbQJjtZCPXkRU5t4kt33f7ziKSvOEoIGOUsg8TqnO04uicjA"
+ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzc1MTg0NDQ4LCJpYXQiOjE3NzUwOTgwNDgsInRva2VuQ29uc3VtZXJUeXBlIjoiQVBQIiwiZGhhbkNsaWVudElkIjoiMTEwNzQyNTI3NSJ9.DSmIRZa6I1KvyBH_t0pa9_gllj6Vo6UtnHef0Gw-0glPgx37Pz0tTksXt8maty--bL2Do83D1Qu7bT_e53A0gg"
 
 # 🔥 Your instruments
 CE_ID = 40761
@@ -41,21 +41,18 @@ def on_tick(msg):
             return
 
         # 🔥 Emit only once per minute
-        if sampler.should_emit(security_id):
+        price = float(msg["LTP"])
 
-            price = float(msg["LTP"])
+        if security_id == CE_ID:
+            print(f"🟢 CE Tick VWAP: {vwap:.2f} | Price: {price}")
 
-            if security_id == CE_ID:
-                print(f"🟢 CE 1-min VWAP: {vwap:.2f} | Price: {price}")
-
-            elif security_id == PE_ID:
-                print(f"🔴 PE 1-min VWAP: {vwap:.2f} | Price: {price}")
+        elif security_id == PE_ID:
+            print(f"🔴 PE Tick VWAP: {vwap:.2f} | Price: {price}")
 
 # -------------------------------
 # 🔌 WebSocket Connection
 # -------------------------------
 def start_ws():
-
     instruments = [
     (marketfeed.NSE_FNO, str(CE_ID), marketfeed.Quote),
     (marketfeed.NSE_FNO, str(PE_ID), marketfeed.Quote)
