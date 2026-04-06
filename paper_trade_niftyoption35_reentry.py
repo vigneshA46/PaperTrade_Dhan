@@ -521,11 +521,11 @@ def universal_exit_check(ce_ltp, pe_ltp):
     # =========================
     # ✅ COMBINED EXIT (TICK LEVEL SAFE)
     # =========================
-    if combined_total >= TARGET_POINTS * LOTSIZE and not combined_exit_active:
+    if combined_total >= TARGET_POINTS * LOTSIZE:
 
         print("🏁 COMBINED TARGET HIT", combined_total)
 
-        combined_exit_active = True   # 🔥 LOCK
+        
 
         # EXIT CE
         if ce_state["position"]:
@@ -569,11 +569,11 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 cum_pnl=combined_pnl
             )
 
+        TARGET_POINTS = TARGET_POINTS + 35
         # RESET STATES
         for state in [ce_state, pe_state]:
             state["position"] = False
             state["lot"] = 1
-            TARGET_POINTS = TARGET_POINTS + 35
             state["trading_disabled"] = False
             state["rearm_required"] = True
 
