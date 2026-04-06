@@ -503,7 +503,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl, combined_exit_active
+    global combined_pnl, combined_exit_active , TARGET_POINTS
 
     ce_running = 0
     pe_running = 0

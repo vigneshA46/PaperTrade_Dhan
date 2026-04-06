@@ -1,4 +1,4 @@
-import time
+""" import time
 import threading
 from datetime import datetime, time as dtime
 import pytz
@@ -153,4 +153,14 @@ def publish(token, data):
 load_market_holidays()
 
 threading.Thread(target=refresh_holidays, daemon=True).start()
-threading.Thread(target=_auto_manager, daemon=True).start()
+threading.Thread(target=_auto_manager, daemon=True).start() """
+
+
+subscriptions = {}
+
+def subscribe(token, handler):
+    subscriptions.setdefault(token, []).append(handler)
+
+def publish(token, data):
+    for handler in subscriptions.get(token, []):
+        handler(token, data)

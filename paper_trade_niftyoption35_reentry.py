@@ -28,6 +28,8 @@ def trade_log_worker():
         finally:
             trade_log_queue.task_done()
 
+            
+
 ATM = None 
 TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
 EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
@@ -502,7 +504,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl, combined_exit_active
+    global combined_pnl, combined_exit_active , TARGET_POINTS
 
     ce_running = 0
     pe_running = 0
