@@ -49,7 +49,8 @@ IST = pytz.timezone("Asia/Kolkata")
 TRADE_START = dtime(9, 16)
 TRADE_END   = dtime(15, 20)
 
-TARGET_POINTS = 35
+CE_TARGET_POINTS = 35
+PE_TARGET_POINTS = 35
 LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
@@ -506,7 +507,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl, combined_exit_active , TARGET_POINTS
+    global combined_pnl, combined_exit_active , CE_TARGET_POINTS , PE_TARGET_POINTS
 
     ce_running = 0
     pe_running = 0
@@ -529,13 +530,14 @@ def universal_exit_check(ce_ltp, pe_ltp):
     # =========================
     # ✅ COMBINED EXIT (TICK LEVEL SAFE)
     # =========================
-    if combined_total >= TARGET_POINTS * LOTSIZE:
 
-        print("🏁 COMBINED TARGET HIT", combined_total)
+    if ce_total >= CE_TARGET_POINTS * LOTSIZE:
 
-        
+        print("🏁 COMBINED TARGET HIT CE", ce_total)
+
 
         # EXIT CE
+    
         if ce_state["position"]:
             exit_price = ce_ltp
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
@@ -555,7 +557,18 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 pnl=ce_state["pnl"],
                 cum_pnl=combined_pnl
             )
+            ce_state["lot"] = 1
+            ce_state["trading_disabled"] = False
+            ce_state["rearm_required"] = True
+            ce_state["position"] = False
 
+        CE_TARGET_POINTS = CE_TARGET_POINTS + 35
+        return
+
+    if pe_total >= PE_TARGET_POINTS * LOTSIZE:
+
+        print("🏁 COMBINED TARGET HIT PE", pe_total)
+        
         # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
@@ -577,13 +590,12 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 cum_pnl=combined_pnl
             )
 
-        TARGET_POINTS = TARGET_POINTS + 35
-        # RESET STATES
-        for state in [ce_state, pe_state]:
-            state["position"] = False
-            state["lot"] = 1
-            state["trading_disabled"] = False
-            state["rearm_required"] = True
+            pe_state["lot"] = 1
+            pe_state["trading_disabled"] = False
+            pe_state["rearm_required"] = True
+            pe_state["position"] = False
+
+        PE_TARGET_POINTS = PE_TARGET_POINTS + 35
 
         return   # 🚨 prevent further checks
 
