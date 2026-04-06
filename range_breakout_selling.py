@@ -74,7 +74,7 @@ PE_ID = None
 telemetry = {
     "strategy_id": COMMON_ID,
     "run_id": COMMON_ID,
-    "status": "RUNNING",
+    "status": "ACTIVE",
     "pnl": 0,
     "pnl_percentage": 0,
     "ce_ltp": 0,
@@ -215,8 +215,8 @@ def log_trade_event(
 
         "reason": reason,
         "deployed_by": COMMON_ID,
-        "pnl": str(pnl),
-        "cum_pnl": str(cum_pnl),
+        "pnl": str(pnl * 65),
+        "cum_pnl": str(cum_pnl * 65),
     }
 
     # 🔥 NON-BLOCKING

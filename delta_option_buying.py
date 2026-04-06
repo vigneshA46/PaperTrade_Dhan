@@ -33,8 +33,8 @@ def trade_log_worker():
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
 ATM = None 
-TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
-EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
+TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
+EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
 COMMON_ID = "a6bbea5c-ee7e-41c2-b39a-fb4703422d36"
 SYMBOL = "NIFTY"
@@ -55,7 +55,8 @@ TRADE_END   = dtime(15, 20)
 TARGET_POINTS = 100
 LOTSIZE = 65
 
-today = datetime.now(IST).strftime("%Y-%m-%d")
+#today = datetime.now(IST).strftime("%Y-%m-%d")
+today = "2026-04-06"
 
 telemetry = {
     "strategy_id": COMMON_ID,
@@ -68,6 +69,36 @@ telemetry = {
     "ce_pnl": 0,
     "pe_pnl": 0
 }
+
+def get_first_candle_mark(security_id):
+
+    today = datetime.now(IST).strftime("%Y-%m-%d")
+   
+
+    idx= dhan.intraday_minute_data(
+        security_id=security_id,
+        exchange_segment="NSE_FNO",
+        instrument_type="OPTIDX",
+        from_date=today,
+        to_date=today
+    )
+    print("Today :",type(today),today)
+
+    data = idx.get("data", {})
+    closes = data.get("close", [])
+    timestamps = data.get("timestamp", [])
+
+    for i in range(len(timestamps)):
+        ts = datetime.fromtimestamp(timestamps[i], IST)  
+
+        if ts.hour == 9 and 15 <= ts.minute <= 17:
+            mark = float(closes[i])
+            print(f"📍 HIST MARK {security_id} @ {mark}")
+            return mark
+
+    print("❌ 09:15 candle not found")
+    return None
+
 
 def get_next_tuesday():
     today = datetime.now(IST)
@@ -174,7 +205,7 @@ def telemetry_broadcaster():
 
 
             res = requests.post(
-                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
+                "https://algoapi.dreamintraders.in/api/telemetry",
                 json=payload,
                 timeout=0.5   # 🔥 keep it LOW
             )
@@ -212,7 +243,7 @@ def log_event(leg_name, token, action, price, remark=""):
 
 
 def logtradeleg(strategyid, leg, symbol, strike_price, date, token):
-    url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
+    url = "https://algoapi.dreamintraders.in/api/tradelegs/create"
     
     payload = {
         "strategy_id": strategyid,
@@ -305,16 +336,62 @@ def init_state():
         "trailing_active": False
     }
 
+wait_for_start()
+
+#ce_strike, pe_strike = get_high_delta_strikes(access_token, CLIENT_ID)
+
+# =========================
+# INDEX FIRST CANDLE
+# =========================
+idx = dhan.intraday_minute_data(
+    security_id=13,
+    exchange_segment="IDX_I",
+    instrument_type="INDEX",
+    from_date=today,
+    to_date=today
+)
+
+data = idx.get("data", {})
+
+opens = data.get("open", [])
+highs = data.get("high", [])
+lows = data.get("low", [])
+closes = data.get("close", [])
+volumes = data.get("volume", [])
+timestamps = data.get("timestamp", [])
+
+opening_candles = []
+
+for i in range(len(timestamps)):
+    ts = datetime.fromtimestamp(timestamps[i], IST) 
+
+    if ts.hour == 9 and 15 <= ts.minute <= 17:
+        candle = {
+            "timestamp": timestamps[i],
+            "open": opens[i],
+            "high": highs[i],
+            "low": lows[i],
+            "close": closes[i],
+            "volume": volumes[i]
+        }
+        opening_candles.append(candle)
+
+print("Opening candles:", opening_candles)
+
+if opening_candles:
+    atm_price = float(opening_candles[0]["close"])  
+    ATM = calculate_atm(atm_price)
+    print("📌 ATM:", ATM)
+   
+else:
+    print("Waiting for 9:17 candle...")
 
 
-ce_strike, pe_strike = get_high_delta_strikes(access_token, CLIENT_ID)
 
 
-CE_STRIKE = int(ce_strike)
-PE_STRIKE = int(pe_strike)
+CE_STRIKE = ATM - 400
+PE_STRIKE = ATM + 400
 
-print(CE_TOKEN)
-print(PE_TOKEN)
 
 
 
@@ -341,8 +418,8 @@ builders = {
 logtradeleg(
     COMMON_ID,
     "CE",
-    f"NIFTY CE {ATM}",
-    ATM,
+    f"NIFTY CE {CE_STRIKE}",
+    CE_STRIKE,
     str(today),
     CE_ID
 )
@@ -351,8 +428,8 @@ logtradeleg(
 logtradeleg(
     COMMON_ID,
     "PE",
-    f"NIFTY PE {ATM}",
-    ATM,
+    f"NIFTY PE {PE_STRIKE}",
+    PE_STRIKE,
     str(today),
     PE_ID
 )
@@ -393,7 +470,7 @@ def handle_leg(name, token, candle, state, ltp):
     if now >= TRADE_END:
 
         if state["position"]:
-            exit_price = ltp
+            exit_price = ltp 
 
             pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
@@ -623,7 +700,7 @@ def on_message(msg):
         return
 
     token = str(msg["security_id"])
-    ltp = msg.get("LTP", 0)
+    ltp = float(msg.get("LTP", 0)or 0)
 
     builder = builders.get(token)
 
@@ -641,9 +718,9 @@ def on_message(msg):
     if token == PE_ID:
         telemetry["pe_ltp"] = float(ltp or 0)
 
-# =========================
-# Entry +8 Breakout
-# =========================
+    # =========================
+    # Entry +8 Breakout
+    # =========================
 
     if token == CE_ID:
         state = ce_state
@@ -653,6 +730,10 @@ def on_message(msg):
         leg_name = "PE"
     else:
         state = None
+
+    if state and state["marked"] is None:
+        return
+
 
     if state and not state["position"] and not state["trading_disabled"]:
 
@@ -683,9 +764,9 @@ def on_message(msg):
                 cum_pnl=combined_pnl
             )
 
-# =========================
-# -8 EXIT (TICK LEVEL)
-# =========================
+    # =========================
+    # -8 EXIT (TICK LEVEL)
+    # =========================
     if state and state["position"]:
 
         if ltp <= state["marked"] - 8:
@@ -769,19 +850,22 @@ TOKENS = [
 ]
 
 MY_TOKENS = [CE_ID , PE_ID]
-""" 
+
+
 def on_tick(token, msg):
 
-    if token not in MY_TOKENS:
+    if token not in TOKENS:
         return  
     on_message(msg)
 
     
 for t in TOKENS:
     subscribe(t, on_tick)
- """
 
-feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
+
+""" 
+
+feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
  
 while True:
     try:
@@ -793,4 +877,4 @@ while True:
 
     except Exception as e:
         print("WS ERROR:", e)
-        feed.run_forever()
+        feed.run_forever() """

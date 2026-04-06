@@ -195,7 +195,7 @@ def calculate_atm(price, step=50):
 telemetry = {
     "strategy_id": COMMON_ID,
     "run_id": COMMON_ID,
-    "status": "RUNNING",
+    "status": "ACTIVE",
     "pnl": 0.0,
     "pnl_percentage": 0.0,
     "ce_ltp": 0.0,
@@ -402,8 +402,10 @@ def handle_leg(name, token, candle, state, ltp):
     # TIME EXIT (15:20)
     # =========================
     if now >= TRADE_END:
+        telemetry["status"] = "CLOSED"
 
         if state["position"]:
+
             exit_price = ltp
 
             pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
@@ -514,6 +516,10 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     if pe_state["position"]:
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+
+    if ce_state["position"] or ce_state["position"]:
+
+        telemetry["status"] = 'RUNNING'
 
     ce_total = ce_state["pnl"] + ce_running
     pe_total = pe_state["pnl"] + pe_running
