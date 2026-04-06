@@ -30,8 +30,8 @@ def trade_log_worker():
 
 
 ATM = None 
-TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
-EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
+TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
+EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
 COMMON_ID = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
 SYMBOL = "NIFTY"
@@ -145,7 +145,7 @@ def telemetry_broadcaster():
 
 
             res = requests.post(
-                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
+                "https://algoapi.dreamintraders.in/api/telemetry",
                 json=payload,
                 timeout=0.5   # 🔥 keep it LOW
             )
@@ -164,7 +164,7 @@ t.start()
 
 
 def logtradeleg(strategyid, leg, symbol, strike_price, date, token):
-    url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
+    url = "https://algoapi.dreamintraders.in/api/tradelegs/create"
     
     payload = {
         "strategy_id": strategyid,
@@ -189,6 +189,9 @@ def logtradeleg(strategyid, leg, symbol, strike_price, date, token):
     except Exception as e:
         print(f"⚠️ Error while calling API: {e}")
         return None
+
+
+
 
 def log_trade_event(
     event_type,
@@ -227,7 +230,8 @@ def log_trade_event(
     # 🔥 NON-BLOCKING
     trade_log_queue.put(payload)
 
-        
+
+
 def wait_for_start():
     print("⏳ Waiting for market...")
     while True:
