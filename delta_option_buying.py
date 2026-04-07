@@ -861,20 +861,3 @@ def on_tick(token, msg):
     
 for t in TOKENS:
     subscribe(t, on_tick)
-
-
-""" 
-
-feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
- 
-while True:
-    try:
-        feed.run_forever()
-        data = feed.get_data()
-
-        if data:
-            on_message(data)
-
-    except Exception as e:
-        print("WS ERROR:", e)
-        feed.run_forever() """

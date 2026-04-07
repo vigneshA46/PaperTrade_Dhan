@@ -695,7 +695,7 @@ threading.Thread(target=trade_log_worker, daemon=True).start()
     
 
 TOKENS = [CE_ID , PE_ID]
-
+""" 
 def on_tick(token, msg):
 
     if token not in [CE_ID , PE_ID , INDEX_TOKEN]:
@@ -711,3 +711,4 @@ def on_tick(token, msg):
 
 for t in TOKENS:
     subscribe(t, on_tick)
+ """

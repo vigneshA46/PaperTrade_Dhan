@@ -3,7 +3,7 @@ import paper_trade_niftyoption50_no_reentry as strategy1
 import paper_trade_niftyoption50_reentry as strategy2
 import paper_trade_niftyoption35_reentry as strategy3
 import delta_option_buying as strategy4
-import range_breakout_selling as strategy5
+#import range_breakout_selling as strategy5
 from dhanhq import marketfeed
 from dhanhq import dhanhq
 from dhan_token import get_access_token
@@ -14,7 +14,7 @@ import os
 ALL_TOKENS = set()
 ALL_TOKENS.update(strategy1.TOKENS)
 ALL_TOKENS.update(strategy4.TOKENS)
-ALL_TOKENS.update(strategy5.TOKENS)
+#ALL_TOKENS.update(strategy5.TOKENS)
 
 #ALL_TOKENS.update(strategy2.TOKENS)
 #ALL_TOKENS.update(strategy3.TOKENS)
