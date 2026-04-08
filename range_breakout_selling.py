@@ -517,19 +517,6 @@ def on_option_tick(msg):
                 )
 
 
-        """ log_trade_event(
-            "ENTRY",
-            str(leg_name),
-            int(token),
-            SYMBOL,
-            "SELL",
-            state["lot"],
-            ltp,
-            "BREAKOUT",
-            0,
-            telemetry["pnl"]
-        )    """
-
     # =========================
     # 🔴 POSITION MANAGEMENT
     # =========================
@@ -567,18 +554,7 @@ def on_option_tick(msg):
                 cum_pnl=telemetry["pnl"]
                 )
 
-            """ log_trade_event(
-                "EXIT",
-                leg_name,
-                token,
-                SYMBOL,
-                "BUY",
-                state["lot"],
-                exit_price,
-                "INDEX_EXIT",
-                final_pnl,
-                telemetry["pnl"]
-                ) """   
+              
 
         entry = state["entry_price"]
 
@@ -644,19 +620,6 @@ def on_option_tick(msg):
                     pnl= final_pnl,
                     cum_pnl=telemetry["pnl"]
                     )
-
-                    """ log_trade_event(
-                        "EXIT",
-                        leg_name,
-                        token,
-                        SYMBOL,
-                        "BUY",
-                        state["lot"],
-                        exit_price,
-                        "SL",
-                        final_pnl,
-                        telemetry["pnl"]
-                    ) """
 
         # =========================
         # 🧠 DAY TARGET CHECK

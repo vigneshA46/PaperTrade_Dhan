@@ -41,6 +41,9 @@ load_dotenv()
 STRATEGY_NAME = "NIFTY_OPTION_BUYING_50 no reentry"
 CLIENT_ID = os.getenv("CLIENT_ID")
 
+CE_TARGET_POINTS = 50
+PE_TARGET_POINTS = 50
+
 IST = pytz.timezone("Asia/Kolkata")
 
 TRADE_START = dtime(9, 16)
@@ -255,8 +258,9 @@ def init_state():
         "lot": 1,
         "pnl": 0.0,
         "symbol": None,
-        "rearm_required": False
-    }
+        "rearm_required": False,
+        "moment":0.0
+         }
 # =========================
 # START
 # =========================
@@ -466,6 +470,9 @@ def handle_leg(name, token, candle, state, ltp):
 
         exit_price = ltp
 
+        current_moment = exit_price - state["entry_price"]
+        state["moment"] +=current_moment
+
         pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
         state["pnl"] += pnl
@@ -474,7 +481,6 @@ def handle_leg(name, token, candle, state, ltp):
         print("🔴 EXIT", name, exit_price)
 
         log_trade_event(
-            
             event_type="EXIT",
             leg_name=name,
             token=token,
@@ -492,9 +498,47 @@ def handle_leg(name, token, candle, state, ltp):
         state["lot"] += 1
 
 
+def tick_exit_check(name, token, state, ltp):
+    global combined_pnl
+
+    if not state["position"]:
+        return
+
+    if ltp < state["marked"]:
+        exit_price = ltp
+
+        pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+
+        state["pnl"] += pnl
+        combined_pnl += pnl
+        current_moment = exit_price - state["entry_price"]
+        state["moment"] +=current_moment
+
+        print("⚡ TICK EXIT", name, exit_price)
+
+        log_trade_event(
+            event_type="EXIT",
+            leg_name=name,
+            token=token,
+            symbol=SYMBOL,
+            side="SELL",
+            lot=state["lot"],
+            price=exit_price,
+            reason="Below Mark (Tick Exit)",
+            pnl=state["pnl"],
+            cum_pnl=combined_pnl
+        )
+
+        state["position"] = False
+
+        
+        state["lot"] += 1
+
+
+
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl
+    global combined_pnl , CE_TARGET_POINTS , PE_TARGET_POINTS
 
     ce_running = 0
     pe_running = 0
@@ -505,23 +549,29 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["position"]:
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
-    if ce_state["position"] or ce_state["position"]:
+    if ce_state["position"] or pe_state["position"]:
         telemetry["status"] = 'RUNNING'
 
 
     total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
     combined_pnl = total
 
-    if total >= TARGET_POINTS*65:
+    if ce_state["moment"] >= CE_TARGET_POINTS and not ce_state["trading_disabled"]:
 
-        print("🏁 TARGET HIT", total)
+        print("🏁 CE 50 points hit")
 
-        # FORCE EXIT CE
+
+        # EXIT CE
+    
         if ce_state["position"]:
             exit_price = ce_ltp
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
+            current_moment = exit_price - ce_state["entry_price"]
+            ce_state["moment"] +=current_moment
+
             ce_state["pnl"] += pnl
+            combined_pnl += pnl
 
             log_trade_event(
                 event_type="EXIT",
@@ -531,19 +581,35 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=ce_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT",
-                pnl= ce_state["pnl"],
+                reason="COMBINED EXIT",
+                pnl=ce_state["pnl"],
                 cum_pnl=combined_pnl
-                )   
-
+            )
+            ce_state["lot"] = 1
+            ce_state["trading_disabled"] = True
+            ce_state["rearm_required"] = True
             ce_state["position"] = False
 
-        # FORCE EXIT PE
+        CE_TARGET_POINTS = CE_TARGET_POINTS + 50
+        return
+        
+            
+            
+
+    if pe_state["moment"] >= PE_TARGET_POINTS and not ce_state["trading_disabled"]:
+
+        print("🏁 PE 50 points hit")
+        
+        # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
+            current_moment = exit_price - pe_state["entry_price"]
+            pe_state["moment"] +=current_moment
+
             pe_state["pnl"] += pnl
+            combined_pnl += pnl
 
             log_trade_event(
                 event_type="EXIT",
@@ -553,17 +619,19 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 side="SELL",
                 lot=pe_state["lot"],
                 price=exit_price,
-                reason="UNIVERSAL EXIT",
+                reason="COMBINED EXIT",
                 pnl=pe_state["pnl"],
                 cum_pnl=combined_pnl
-                )
+            )
 
+            pe_state["lot"] = 1
+            pe_state["trading_disabled"] = True
+            pe_state["rearm_required"] = True
             pe_state["position"] = False
 
-        # STOP EVERYTHING
-        ce_state["trading_disabled"] = True
-        pe_state["trading_disabled"] = True
+        PE_TARGET_POINTS = PE_TARGET_POINTS + 50
 
+        return   # 🚨 prevent further checks
 
 
 # =========================
@@ -591,9 +659,11 @@ def on_message(msg):
 
     # store LTP
     if token == CE_ID:
+        tick_exit_check("CE", token, ce_state, ltp)
         telemetry["ce_ltp"] = float(ltp or 0)
 
     if token == PE_ID:
+        tick_exit_check("PE", token, pe_state, ltp)
         telemetry["pe_ltp"] = float(ltp or 0)  
 
     # =========================

@@ -124,6 +124,7 @@ def get_first_candle_mark(security_id):
     print("❌ 09:15 candle not found")
     return None
 
+
 def log_event(leg_name, token, action, price, remark=""):
     payload = {
         "run_id": COMMON_ID,
@@ -531,9 +532,9 @@ def universal_exit_check(ce_ltp, pe_ltp):
     # ✅ COMBINED EXIT (TICK LEVEL SAFE)
     # =========================
 
-    if ce_total >= CE_TARGET_POINTS * LOTSIZE:
+    if ce_total >= CE_TARGET_POINTS * LOTSIZE and not ce_state["trading_disabled"]:
 
-        print("🏁 COMBINED TARGET HIT CE", ce_total)
+        print("🏁combined pnll hit 50 points")
 
 
         # EXIT CE
@@ -565,9 +566,9 @@ def universal_exit_check(ce_ltp, pe_ltp):
         CE_TARGET_POINTS = CE_TARGET_POINTS + 35
         return
 
-    if pe_total >= PE_TARGET_POINTS * LOTSIZE:
+    if pe_total >= PE_TARGET_POINTS * LOTSIZE and not ce_state["trading_disabled"]:
 
-        print("🏁 COMBINED TARGET HIT PE", pe_total)
+        print("🏁combined pnl hit 50 points")
         
         # EXIT PE
         if pe_state["position"]:
@@ -600,6 +601,44 @@ def universal_exit_check(ce_ltp, pe_ltp):
         return   # 🚨 prevent further checks
 
 
+
+def tick_exit_check(name, token, state, ltp):
+    global combined_pnl
+
+    if not state["position"]:
+        return
+
+    if ltp < state["marked"]:
+        exit_price = ltp
+
+        pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+
+        state["pnl"] += pnl
+        combined_pnl += pnl
+        current_moment = exit_price - state["entry_price"]
+        state["moment"] +=current_moment
+
+        print("⚡ TICK EXIT", name, exit_price)
+
+        log_trade_event(
+            event_type="EXIT",
+            leg_name=name,
+            token=token,
+            symbol=SYMBOL,
+            side="SELL",
+            lot=state["lot"],
+            price=exit_price,
+            reason="Below Mark (Tick Exit)",
+            pnl=state["pnl"],
+            cum_pnl=combined_pnl
+        )
+
+        state["position"] = False
+        state["lot"] += 1
+
+
+
+
 # =========================
 # CALLBACKS
 # =========================
@@ -624,9 +663,11 @@ def on_message(msg):
 
     # store LTP
     if token == CE_ID:
+        tick_exit_check("CE", token, ce_state, ltp)
         telemetry["ce_ltp"] = float(ltp or 0)
 
     if token == PE_ID:
+        tick_exit_check("PE", token, pe_state, ltp)
         telemetry["pe_ltp"] = float(ltp or 0)  
 
     # =========================
