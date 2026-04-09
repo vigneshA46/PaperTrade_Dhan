@@ -252,7 +252,8 @@ def init_state():
         "lot": 1,
         "pnl": 0.0,
         "symbol": None,
-        "rearm_required": False
+        "rearm_required": False,
+        "moment":0.0
     }
 
 # =========================
