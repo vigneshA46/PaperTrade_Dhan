@@ -479,7 +479,7 @@ def on_message(msg):
             pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
             current_moment = exit_price - state["entry_price"]
-            state["moment"] += current_moment
+            state["moment"] = current_moment
 
             state["pnl"] += pnl
             combined_pnl += pnl
@@ -543,6 +543,9 @@ def on_message(msg):
 
             state["pnl"] += pnl
             combined_pnl += pnl
+            current_moment = exit_price - state["entry_price"]
+            state["moment"] = current_moment
+
 
             print("🔴 EXIT (-25 TICK)", leg_name, exit_price)
 
@@ -725,7 +728,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             current_moment = exit_price - ce_state["entry_price"]
-            ce_state["moment"] +=current_moment
+            ce_state["moment"] =0.0
 
             ce_state["pnl"] += pnl
             combined_pnl += pnl
@@ -763,7 +766,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             current_moment = exit_price - pe_state["entry_price"]
-            pe_state["moment"] +=current_moment
+            pe_state["moment"] =0.0
 
             pe_state["pnl"] += pnl
             combined_pnl += pnl

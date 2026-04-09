@@ -567,7 +567,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         CE_TARGET_POINTS = CE_TARGET_POINTS + 35
         return
 
-    if pe_total >= PE_TARGET_POINTS * LOTSIZE and not ce_state["trading_disabled"]:
+    if pe_total >= PE_TARGET_POINTS * LOTSIZE and not pe_state["trading_disabled"]:
 
         print("🏁combined pnl hit 50 points")
         

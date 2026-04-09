@@ -473,39 +473,6 @@ def handle_leg(name, token, candle, state, ltp):
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
 
-    # =========================
-    # EXIT CONDITION (STRUCTURE BREAK)
-    # =========================
-    if state["position"] and ltp < state["marked"]:
-
-        exit_price = ltp
-
-        pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
-
-        state["pnl"] += pnl
-        combined_pnl += pnl
-
-        print("🔴 EXIT", name, exit_price)
-
-        log_trade_event(
-            
-            event_type="EXIT",
-            leg_name=name,
-            token=token,
-            symbol=SYMBOL,
-            side="SELL",
-            lot=state["lot"],
-            price=exit_price,
-            reason="Below Mark",
-            pnl= state["pnl"],
-            cum_pnl=combined_pnl
-                )
-
-        state["position"] = False
-        state["lot"] += 1
-
-        state["rearm_required"] = True
-
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
@@ -545,7 +512,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             current_moment = exit_price - ce_state["entry_price"]
-            ce_state["moment"] +=current_moment
+            ce_state["moment"] =0.0
 
             ce_state["pnl"] += pnl
             combined_pnl += pnl
@@ -567,7 +534,6 @@ def universal_exit_check(ce_ltp, pe_ltp):
             ce_state["rearm_required"] = True
             ce_state["position"] = False
 
-        CE_TARGET_POINTS = CE_TARGET_POINTS + 35
         return
         
             
@@ -583,7 +549,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             current_moment = exit_price - pe_state["entry_price"]
-            pe_state["moment"] +=current_moment
+            pe_state["moment"] =0.0
 
             pe_state["pnl"] += pnl
             combined_pnl += pnl
@@ -606,7 +572,6 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pe_state["rearm_required"] = True
             pe_state["position"] = False
 
-        PE_TARGET_POINTS = PE_TARGET_POINTS + 35
 
         return   # 🚨 prevent further checks
 
@@ -626,7 +591,7 @@ def tick_exit_check(name, token, state, ltp):
         state["pnl"] += pnl
         combined_pnl += pnl
         current_moment = exit_price - state["entry_price"]
-        state["moment"] +=current_moment
+        state["moment"] =current_moment
 
         print("⚡ TICK EXIT", name, exit_price)
 
