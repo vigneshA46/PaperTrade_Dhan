@@ -14,6 +14,7 @@ from io import StringIO
 from queue import Queue
 import threading
 from dhanhq import dhanhq
+from dispatcher import subscribe
 
 
 load_dotenv()
@@ -434,6 +435,9 @@ def on_message(msg):
     if state and state["marked"] is None:
         return
 
+    current_moment = ltp - state["entry_price"]
+    state["moment"] = current_moment
+
 
     if state and not state["position"] and not state["trading_disabled"]:
 
@@ -457,7 +461,7 @@ def on_message(msg):
                 event_type="ENTRY",
                 leg_name=leg_name,
                 token=token,
-                symbol="NIFTY",
+                symbol=SYMBOL,
                 side="BUY",
                 lot=state["lot"],
                 price=entry_price,
@@ -543,8 +547,7 @@ def on_message(msg):
 
             state["pnl"] += pnl
             combined_pnl += pnl
-            current_moment = exit_price - state["entry_price"]
-            state["moment"] = current_moment
+
 
 
             print("🔴 EXIT (-25 TICK)", leg_name, exit_price)
@@ -856,24 +859,16 @@ if __name__ == "__main__":
     pe_state["marked"] = get_first_candle_mark(str(PE_ID))
 
 
-    instruments = [
-        (marketfeed.NSE_FNO, str(CE_ID), marketfeed.Quote),
-        (marketfeed.NSE_FNO, str(PE_ID), marketfeed.Quote)
-        ]
 
+    TOKENS = [CE_ID , PE_ID]
 
-    feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
- 
-    while True:
-        try:
-            feed.run_forever()
-            data = feed.get_data()
+    def on_tick(token, msg):
 
-            if data:
-                
-                on_message(data)
+        if token not in TOKENS:
+            return  
 
-        except Exception as e:
-            print("WS ERROR:", e)
-            feed.run_forever()
+        on_message(msg)
+
+    for t in TOKENS:
+        subscribe(t, on_tick)
 

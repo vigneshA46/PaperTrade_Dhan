@@ -582,6 +582,9 @@ def tick_exit_check(name, token, state, ltp):
 
     if not state["position"]:
         return
+    
+    current_moment = ltp - state["entry_price"]
+    state["moment"] =current_moment
 
     if ltp < state["marked"]:
         exit_price = ltp
@@ -590,8 +593,6 @@ def tick_exit_check(name, token, state, ltp):
 
         state["pnl"] += pnl
         combined_pnl += pnl
-        current_moment = exit_price - state["entry_price"]
-        state["moment"] =current_moment
 
         print("⚡ TICK EXIT", name, exit_price)
 
