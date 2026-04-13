@@ -17,7 +17,7 @@ import os
 ALL_TOKENS = set()
 ALL_TOKENS.update(strategy1.TOKENS)
 ALL_TOKENS.update(strategy6.TOKENS)
-ALL_TOKENS.update(strategy.TOKENS)
+ALL_TOKENS.update(strategy7.TOKENS)
 #ALL_TOKENS.update(strategy5.TOKENS)
 
 #ALL_TOKENS.update(strategy2.TOKENS)
