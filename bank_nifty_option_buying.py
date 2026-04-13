@@ -801,74 +801,74 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 
 
-if __name__ == "__main__":  
-
-    today = datetime.now(IST).strftime("%Y-%m-%d")
-
-    wait_for_start()
-
-    ATM = get_banknifty_atm(today)
-
-    ce, pe = discover_options(ATM, today)
-
-    CE_ID = str(ce["SECURITY_ID"])
-    PE_ID = str(pe["SECURITY_ID"])   # <-- FIXED
 
 
-    print("security ids")
-    print(CE_ID, PE_ID)
+today = datetime.now(IST).strftime("%Y-%m-%d")
+
+wait_for_start()
+
+ATM = get_banknifty_atm(today)
+
+ce, pe = discover_options(ATM, today)
+
+CE_ID = str(ce["SECURITY_ID"])
+PE_ID = str(pe["SECURITY_ID"])   # <-- FIXED
+
+
+print("security ids")
+print(CE_ID, PE_ID)
 
 
 
-    builders = {
-        CE_ID: OneMinuteCandleBuilder(),
-        PE_ID: OneMinuteCandleBuilder()
-            }
+builders = {
+    CE_ID: OneMinuteCandleBuilder(),
+    PE_ID: OneMinuteCandleBuilder()
+        }
 
-    # Log CE leg
-    logtradeleg(
-        COMMON_ID,
-        "CE",
-        f"BANK NIFTY CE {str(ATM)}",
-        ATM,
-        str(today),
-        str(CE_ID)
-    )   
+# Log CE leg
+logtradeleg(
+    COMMON_ID,
+    "CE",
+    f"BANK NIFTY CE {str(ATM)}",
+    ATM,
+    str(today),
+    str(CE_ID)
+)   
 
     # Log PE leg
-    logtradeleg(
-        COMMON_ID,
-        "PE",
-        f"BANK NIFTY PE {str(ATM)}",
-        str(ATM),
-        str(today),
-        str(PE_ID)
-    )
+logtradeleg(
+    COMMON_ID,
+    "PE",
+    f"BANK NIFTY PE {str(ATM)}",
+    str(ATM),
+    str(today),
+    str(PE_ID)
+)
 
     
     # =========================
     # STATE
     # =========================
 
-    ce_state = init_state()
-    pe_state = init_state()
+ce_state = init_state()
+pe_state = init_state()
 
-    combined_pnl = 0
+combined_pnl = 0
 
-    ce_state["marked"] = get_first_candle_mark(str(CE_ID))
-    pe_state["marked"] = get_first_candle_mark(str(PE_ID))
+ce_state["marked"] = get_first_candle_mark(str(CE_ID))
+pe_state["marked"] = get_first_candle_mark(str(PE_ID))
 
 
 
-    TOKENS = [CE_ID , PE_ID]
+TOKENS = [CE_ID , PE_ID]
 
-    def on_tick(token, msg):
+def on_tick(token, msg):
 
-        if token not in TOKENS:
-            return  
+    if token not in TOKENS:
+        return  
 
-        on_message(msg)
+    on_message(msg)
 
-    for t in TOKENS:
-        subscribe(t, on_tick)
+for t in TOKENS:
+    subscribe(t, on_tick)
 
