@@ -516,13 +516,13 @@ def handle_leg(name, token, candle, state, ltp):
         if close > state["marked"] and avg > state["marked"] and avg < close:
 
             entry_price = ltp   
-
+    
             state["entry_price"] = entry_price
             state["entry_time"] = datetime.now(IST).isoformat()
 
             state["position"] = True
             state["tsl"] = entry_price + 30
-            state["sl"] = entry_price - 10 
+            state["sl"] = entry_price + 20
             state["trailing_active"] = False
 
             print("🟢 BUY", name, entry_price)
@@ -732,7 +732,7 @@ def on_message(msg):
 
             state["position"] = True
             state["tsl"] = entry_price + 30
-            state["sl"] = entry_price - 10
+            state["sl"] = entry_price + 20
             state["trailing_active"] = False
 
             print("🟢 BUY (TICK +8)", leg_name, entry_price)

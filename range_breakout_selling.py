@@ -455,8 +455,6 @@ def on_index_candle(token, timestamp, candle):
 def on_option_tick(msg):
     global ce_state, pe_state, telemetry
 
-    
-    
     if msg["type"] != 'Quote Data':
         return
 
@@ -492,8 +490,8 @@ def on_option_tick(msg):
         state["enter_now"] = False
 
         # SL / TSL init
-        state["tsl"] = ltp - 30  # profit trigger
-        state["sl"] = ltp - 15   # loss side (SELL)
+        state["tsl"] = ltp - 40  # profit trigger
+        state["sl"] = ltp - 30   # loss side (SELL)
         state["tsl_active"] = False
 
         print(f"✅ {leg_name} ENTRY @ {ltp}")
@@ -582,7 +580,7 @@ def on_option_tick(msg):
 
             move = entry - ltp
 
-            steps = int((move - 30) // 10)  # after trigger
+            steps = int((move - 40) // 10)  # after trigger
 
             if steps > 0:
                 new_sl = entry - (steps * 10)
