@@ -39,12 +39,12 @@ PE_TARGET_POINTS = 100
 CE_TARGET_POINTS = 100 
 TARGET_POINTS = 100
 
-current_lot = 1
 MAX_LOT = 5
 
 BASE_URL = "https://api.dhan.co/v2"
 FNO_MASTER_URL = f"{BASE_URL}/instrument/NSE_FNO"
 IDX_INTRADAY_URL="https://api.dhan.co/v2/charts/intraday"
+
 
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
@@ -79,7 +79,6 @@ TARGET_PNL = 100
 
 current_lot = 1
 trading_enabled = True
-
 
 cumulative_pnl = 0
 max_profit = 0
@@ -705,7 +704,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl
+    global combined_pnl , CE_TARGET_POINTS , PE_TARGET_POINTS
 
     ce_running = 0
     pe_running = 0
@@ -846,9 +845,9 @@ logtradeleg(
 )
 
     
-    # =========================
-    # STATE
-    # =========================
+# =========================
+# STATE
+# =========================
 
 ce_state = init_state()
 pe_state = init_state()
