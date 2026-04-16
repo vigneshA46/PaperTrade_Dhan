@@ -12,6 +12,9 @@ from find_security import load_fno_master, find_option_security
 import threading
 from dispatcher import subscribe
 from queue import Queue
+from signal_emitter import emit_signal
+from tests.test_order import get_today_deployments, group_users_by_broker
+import asyncio
 
 
 # =========================
@@ -59,6 +62,37 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 
 dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
+
+deployments = get_today_deployments()
+users = group_users_by_broker(deployments)
+
+def build_payload(name, side, token):
+
+    if name == "CE":
+        symbol = ce_row["TRADING_SYMBOL"]
+        expiry = str(ce_row["SM_EXPIRY_DATE"].date())
+    else:
+        symbol = pe_row["TRADING_SYMBOL"]
+        expiry = str(pe_row["SM_EXPIRY_DATE"].date())
+
+    return {
+        "strategy_id": COMMON_ID,
+        "users": users,
+        "option": name,
+        "side": side,
+        "quantity": LOTSIZE,
+        "security_id": token,
+        "token": int(token),
+        "symbol": symbol,
+        "exchange": "NFO",
+        "expiry":expiry,
+        "strike": ATM,
+        "zebusymbol": "NIFTY",
+        "is_ce": True if name == "CE" else False,
+        "is_fno": True,
+        "antsymbol": "NIFTY"
+    }
+
 
 # =========================
 # HELPERS
@@ -405,6 +439,8 @@ def handle_leg(name, token, candle, state, ltp):
         telemetry["status"] = 'CLOSED'
 
         if state["position"]:
+            asyncio.create_task(emit_signal(build_payload(name, "SELL", token)))
+
             exit_price = ltp
 
             pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
@@ -453,6 +489,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["position"] = True
 
             print("🟢 BUY", name, entry_price)
+            asyncio.create_task(emit_signal(build_payload(name, "BUY", token)))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -488,7 +525,7 @@ def tick_exit_check(name, token, state, ltp):
         combined_pnl += pnl
 
         print("⚡ TICK EXIT", name, exit_price)
-
+        asyncio.create_task(emit_signal(build_payload(name, "SELL", token)))
         log_trade_event(
             event_type="EXIT",
             leg_name=name,
@@ -523,7 +560,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["position"]:
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
-    if ce_state["position"] or ce_state["position"]:
+    if ce_state["position"] or pe_state["position"]:
         telemetry["status"] = 'RUNNING'
 
 
@@ -540,6 +577,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if ce_state["moment"] >= CE_TARGET_POINTS and not ce_state["trading_disabled"]:
 
         print("🏁 CE 50 points hit")
+        asyncio.create_task(emit_signal(build_payload("CE", "SELL", CE_ID)))
 
 
         # EXIT CE
@@ -579,6 +617,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["moment"] >= PE_TARGET_POINTS and not pe_state["trading_disabled"]:
 
         print("🏁 PE 50 points hit")
+        asyncio.create_task(emit_signal(build_payload("PE", "SELL", PE_ID)))
         
         # EXIT PE
         if pe_state["position"]:
