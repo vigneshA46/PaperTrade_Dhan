@@ -422,7 +422,7 @@ def handle_leg(name, token, candle, state, ltp):
     # =============================
     if not state["position"]:
 
-        if close > state["marked"] and avg > state["marked"] and avg < close:
+        if close > state["marked"]:
 
             entry_price = ltp   
 
