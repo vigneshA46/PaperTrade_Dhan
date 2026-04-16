@@ -6,6 +6,9 @@ pyotp
 dhanhq
 dotenv
 psycopg2-binary
+smartapi-python
+Ant-A3-tradehub-sdk-production
+upstox-python-sd
 
 # -------- Dhan API / WebSocket --------
 websocket-client

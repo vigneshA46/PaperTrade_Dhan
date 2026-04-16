@@ -574,39 +574,33 @@ def on_option_tick(msg):
             print(f"🔥 {leg_name} TSL ACTIVATED")
 
         # =========================
-        # 🔁 TRAILING LOGIC
+        # 🔁 TRAILING LOGIC (STEP BASED)
         # =========================
         if state["tsl_active"]:
 
-            move = entry - ltp
+        # 🔽 Trail as long as price keeps moving
+            if ltp <= state["tsl"] - 10:
+                state["tsl"] -= 10
+                state["sl"]  -= 10
 
-            steps = int((move - 40) // 10)  # after trigger
+                print(f"🔁 {leg_name} TRAIL -> TSL:{state['tsl']} SL:{state['sl']}")
 
-            if steps > 0:
-                new_sl = entry - (steps * 10)
+            # =========================
+            # ❌ SL HIT
+            # =========================
+            if ltp >= state["sl"]:
+                print(f"❌ {leg_name} SL HIT @ {ltp}")
 
-                # ensure SL only moves forward
-                if new_sl < state["sl"]:
-                    state["sl"] = new_sl
-                    print(f"🔁 {leg_name} TRAIL SL -> {state['sl']}")
+                exit_price = ltp
+                final_pnl = state["entry_price"] - exit_price
 
-                # =========================
-                # ❌ SL HIT
-                # =========================
-                if ltp >= state["sl"]:
-                    print(f"❌ {leg_name} SL HIT @ {ltp}")
+                telemetry["pnl"] += final_pnl
 
-                    exit_price = ltp
-                    final_pnl = entry - exit_price
+                state["position"] = False
+                state["rearm_required"] = True
+                state["tsl_active"] = False
 
-                    telemetry["pnl"] += final_pnl
-
-                    state["position"] = False
-                    state["rearm_required"] = True
-
-                    #log_event(leg_name, token, "EXIT", ltp, "SL HIT")
-
-                    log_trade_event(
+                log_trade_event(
                     event_type="EXIT",
                     leg_name=str(leg_name),
                     token=token,
@@ -615,18 +609,9 @@ def on_option_tick(msg):
                     lot=state["lot"],
                     price=exit_price,
                     reason="SL",
-                    pnl= final_pnl,
+                    pnl=final_pnl,
                     cum_pnl=telemetry["pnl"]
-                    )
-
-        # =========================
-        # 🧠 DAY TARGET CHECK
-        # =========================
-        if telemetry["pnl"] >= DAY_TARGET:
-            print("🎯 DAY TARGET HIT — STOP TRADING" , telemetry["pnl"])
-
-            state["trading_disabled"] = True
-
+                )
 # =========================
 # MAIN
 # =========================

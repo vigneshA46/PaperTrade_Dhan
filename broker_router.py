@@ -6,7 +6,7 @@ from executors.angel_executor import angel_order
 from executors.zebu_executer import zebu_order
 from executors.upstox_executor import upstox_order
 from executors.ant_executer import ant_order
-
+    
 async def route_signal(signal, users):
     tasks = []
     print("USERS:")

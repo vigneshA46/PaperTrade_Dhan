@@ -471,38 +471,6 @@ def handle_leg(name, token, candle, state, ltp):
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
 
-    # =========================
-    # EXIT CONDITION (STRUCTURE BREAK)
-    # =========================
-    if state["position"] and ltp < state["marked"]:
-        
-        exit_price = ltp
-
-        pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
-
-        state["pnl"] += pnl
-        combined_pnl += pnl
-
-        print("🔴 EXIT", name, exit_price)
-
-        log_trade_event(
-            
-            event_type="EXIT",
-            leg_name=name,
-            token=token,
-            symbol=SYMBOL,
-            side="SELL",
-            lot=state["lot"],
-            price=exit_price,
-            reason="Below Mark",
-            pnl= state["pnl"],
-            cum_pnl=combined_pnl
-                )
-
-        state["position"] = False
-        state["lot"] += 1
-
-        state["rearm_required"] = True
 
 
 
