@@ -531,7 +531,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
         # EXIT CE
     
-        if ce_state["position"]:
+        if ce_state ["position"]:
             exit_price = ce_ltp
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
