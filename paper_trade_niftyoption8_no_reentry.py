@@ -30,8 +30,8 @@ def trade_log_worker():
 
 
 ATM = None 
-TRADE_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/event"
-EVENT_LOG_URL = "https://dreaminalgo-backend-production.up.railway.app/api/paperlogger/paperlogger"
+TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
+EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
 COMMON_ID = "adb83f48-262a-4ddf-968f-9e639474bf89"
 SYMBOL = "NIFTY"
@@ -146,7 +146,7 @@ def telemetry_broadcaster():
 
 
             res = requests.post(
-                "https://dreaminalgo-backend-production.up.railway.app/api/telemetry",
+                "https://algoapi.dreamintraders.in/api/telemetry",
                 json=payload,
                 timeout=0.5   # 🔥 keep it LOW
             )
@@ -165,7 +165,7 @@ t.start()
 
 
 def logtradeleg(strategyid, leg, symbol, strike_price, date):
-    url = "https://dreaminalgo-backend-production.up.railway.app/api/tradelegs/create"
+    url = "https://algoapi.dreamintraders.in/api/tradelegs/create"
     
     payload = {
         "strategy_id": strategyid,
