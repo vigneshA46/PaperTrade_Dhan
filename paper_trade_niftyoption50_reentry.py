@@ -309,7 +309,7 @@ if opening_candles:
     atm_price = float(opening_candles[0]["close"])  
     ATM = calculate_atm(atm_price)
     print("📌 ATM:", ATM)
-   
+
 else:
     print("Waiting for 9:17 candle...")
 
@@ -545,7 +545,7 @@ def tick_exit_check(name, token, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl, combined_exit_active ,TARGET_POINTS
+    global combined_pnl, combined_exit_active ,TARGET_POINTS , CE_TARGET_POINTS , PE_TARGET_POINTS
 
     ce_running = 0
     pe_running = 0
@@ -566,13 +566,13 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     combined_total = ce_total + pe_total
 
+
     # =========================
     # ✅ COMBINED EXIT (TICK LEVEL SAFE)
     # =========================
 
 
-
-    if total >= TARGET_POINTS*65:
+    if ce_total >= PE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
 
@@ -598,6 +598,12 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             ce_state["position"] = False
             ce_state["rearm_required"] = True
+            ce_state["lot"] = 1
+            CE_TARGET_POINTS = CE_TARGET_POINTS + 50
+
+    if pe_total >= PE_TARGET_POINTS*65:
+
+        print("🏁 TARGET HIT", total)
 
         # FORCE EXIT PE
         if pe_state["position"]:
@@ -621,6 +627,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             pe_state["position"] = False
             pe_state["rearm_required"] = True
+            pe_state["lot"] = 1
+            PE_TARGET_POINTS = PE_TARGET_POINTS + 50
 
 
 # =========================

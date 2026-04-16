@@ -536,7 +536,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     # =========================
 
 
-    if total >= TARGET_POINTS*65:
+    if ce_total >= PE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
 
@@ -563,6 +563,11 @@ def universal_exit_check(ce_ltp, pe_ltp):
             ce_state["position"] = False
             ce_state["rearm_required"] = True
             ce_state["lot"] = 1
+            CE_TARGET_POINTS = CE_TARGET_POINTS + 35
+
+    if pe_total >= PE_TARGET_POINTS*65:
+
+        print("🏁 TARGET HIT", total)
 
         # FORCE EXIT PE
         if pe_state["position"]:
@@ -587,6 +592,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pe_state["position"] = False
             pe_state["rearm_required"] = True
             pe_state["lot"] = 1
+            PE_TARGET_POINTS = PE_TARGET_POINTS + 35
  
 
 def tick_exit_check(name, token, state, ltp):
