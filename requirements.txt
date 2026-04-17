@@ -9,6 +9,7 @@ psycopg2-binary
 smartapi-python
 Ant-A3-tradehub-sdk-production
 upstox-python-sdk
+logzero
 
 # -------- Dhan API / WebSocket --------
 websocket-client
