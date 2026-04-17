@@ -28,7 +28,7 @@ PE_ID  =None
 ACCESS_TOKEN=get_access_token()
 CLIENT_ID=os.getenv("CLIENT_ID")
 SYMBOL = 'BANKNIFTY'
-
+TRADE_START = dtime(9, 16)
 TRADE_END   = dtime(15, 20)
 
 dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
