@@ -541,6 +541,23 @@ def handle_leg(name, token, candle, state, ltp):
                 )
 
             log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
+
+    
+    if state["position"]:
+
+        if not state["trailing_active"] and ltp >= state["tsl"]:
+            state["trailing_active"] = True
+            state["sl"] = state["tsl"] - 10
+            print(f"🔥 {name} TSL ACTIVATED")
+
+        if state["trailing_active"]:
+            while ltp >= state["tsl"] + 10:
+                state["tsl"] += 10
+                state["sl"] += 10
+                print(f"🔁 {name} TRAIL -> TSL:{state['tsl']} SL:{state['sl']}")
+
+
+    
          
 
 
