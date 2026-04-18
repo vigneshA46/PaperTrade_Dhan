@@ -13,7 +13,7 @@ import threading
 from dispatcher import subscribe
 from queue import Queue
 from signal_emitter import emit_signal
-from tests.test_order import get_today_deployments, group_users_by_broker
+#from tests.test_order import get_today_deployments, group_users_by_broker
 import asyncio
 
 
@@ -55,6 +55,8 @@ TRADE_END   = dtime(15, 20)
 TARGET_POINTS = 50
 LOTSIZE = 65
 
+strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+
 today = datetime.now(IST).strftime("%Y-%m-%d")
 
 telemetry = {
@@ -80,16 +82,64 @@ dhan = dhanhq(CLIENT_ID, access_token)
 
 fno_df=load_fno_master()
 
+loop = asyncio.get_event_loop()
+
+def get_today_deployments():
+    url = f"https://algoapi.dreamintraders.in/api/deployments/today/{strategy_id}"
+
+    try:
+        response = requests.get(url, timeout=10)
+
+        # Raise error if status not 200
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 👉 store in variable (this is what you asked)
+        user_deployments = data
+
+        return user_deployments
+
+    except requests.exceptions.RequestException as e:
+        print("API Error:", e)
+        return None
+
+def group_users_by_broker(deployments):
+    grouped = {}
+
+    if not deployments:
+        return grouped
+
+    for d in deployments:
+
+        if d["type"] == "paper":
+            continue
+        broker = d.get("broker_name")
+
+        if not broker:
+            continue
+
+        if broker not in grouped:
+            grouped[broker] = []
+
+        grouped[broker].append(d)
+
+    return grouped
+
+
 deployments = get_today_deployments()
+
 users = group_users_by_broker(deployments)
+
+print("FORMATTED USERS:", users)
 
 def build_payload(name, side, token):
 
     if name == "CE":
-        symbol = ce_row["TRADING_SYMBOL"]
+        symbol = ce_row["SYMBOL_NAME"]
         expiry = str(ce_row["SM_EXPIRY_DATE"].date())
     else:
-        symbol = pe_row["TRADING_SYMBOL"]
+        symbol = pe_row["SYMBOL_NAME"]
         expiry = str(pe_row["SM_EXPIRY_DATE"].date())
 
     return {
