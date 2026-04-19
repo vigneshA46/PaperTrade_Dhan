@@ -22,19 +22,19 @@ async def execute_exit(user, signal):
         from executors.angel_executor import angel_order
         return await angel_order(user, signal)
 
-    elif broker == "DHAN":
+    elif broker == "dhan":
         from executors.dhan_executor import dhan_order
         return await dhan_order(user, signal)
 
-    elif broker == "ANT":
+    elif broker == "ant":
         from executors.ant_executer import ant_order
         return await ant_order(user, signal)
 
-    elif broker == "UPSTOX":
+    elif broker == "upstox":
         from executors.upstox_executor import upstox_order
         return await upstox_order(user, signal)
 
-    elif broker == "ZEBU":
+    elif broker == "zebu":
         from executors.zebu_executer import zebu_order
         return await zebu_order(user, signal)
 
@@ -45,7 +45,6 @@ async def execute_exit(user, signal):
 @router.post("/exit-strategy")
 async def exit_strategy(req: ExitRequest):
     try:
-        #user = user["credentials"]
 
         payload = {
             "user_id": req.user_id,
@@ -57,7 +56,7 @@ async def exit_strategy(req: ExitRequest):
 
         requests.patch(DEPLOYMENT_STATUS_URL, json=payload)
 
-        open_res = requests.get(OPEN_TRADES_URL, params={
+        open_res = requests.get(OPEN_TRADES_URL, json={
             "user_id": req.user_id,
             "strategy_id": req.strategy_id,
             "broker_id": req.broker_account_id,
@@ -65,10 +64,9 @@ async def exit_strategy(req: ExitRequest):
         })
 
         if open_res.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch positions")
+            raise HTTPException(status_code=500, detail=f"Failed to fetch positions: {open_res.text}")
 
         open_positions = open_res.json()
-
 
         if not open_positions:
             payload["status"] = "CLOSED"
@@ -77,12 +75,30 @@ async def exit_strategy(req: ExitRequest):
 
         results = []
 
+        broker_map = {
+            "angelone": "ANGEL",
+            "dhan": "DHAN",
+            "ant": "ANT",
+            "upstox": "UPSTOX",
+            "zebu": "ZEBU"
+        }
+
         for trade in open_positions:
             try:
-                if trade.get("status") != "ENTRY":
+        
+                if trade.get("event_type") != "ENTRY":
                     continue
 
                 exit_side = "SELL" if trade["side"] == "BUY" else "BUY"
+
+        
+                user = {
+                    "user_id": trade.get("user_id"),
+                    "broker_name": broker_map.get(trade.get("broker_name").lower()),
+                    "broker_account_id": trade.get("broker_id"),
+                    "multiplier": 1,
+                    "credentials": trade.get("credentials")
+                }
 
                 signal = {
                     "symbol": trade.get("symbol"),
@@ -90,7 +106,7 @@ async def exit_strategy(req: ExitRequest):
                     "security_id": trade.get("security_id"),
                     "instrument_token": trade.get("instrument_token"),
                     "exchange": trade.get("exchange"),
-                    "quantity": trade.get("qty"),
+                    "quantity": trade.get("quantity"),
                     "side": exit_side,
                     "is_fno": trade.get("is_fno"),
                     "strike": trade.get("strike"),
@@ -98,7 +114,7 @@ async def exit_strategy(req: ExitRequest):
                     "is_ce": trade.get("is_ce"),
                 }
 
-                await execute_exit(signal)
+                await execute_exit(user, signal)
 
                 results.append({
                     "trade_id": trade.get("id"),
