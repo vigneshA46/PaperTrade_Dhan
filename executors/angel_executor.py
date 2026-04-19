@@ -53,12 +53,12 @@ async def angel_order(user, signal):
                 "reason": signal["reason"]
             }
 
-            print("Payload:",payload)
+            #print("Payload:",payload)
 
             response = await asyncio.to_thread(requests.post, API_URL, json=payload)
 
-            print("📥 STATUS:", response.status_code)
-            print("📥 RESPONSE:", response.text)
+            #print("📥 STATUS:", response.status_code)
+            #print("📥 RESPONSE:", response.text)
 
             if response.status_code == 201:
                 print("Trade logged successfully")
