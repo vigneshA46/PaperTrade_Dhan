@@ -18,23 +18,23 @@ class ExitRequest(BaseModel):
 async def execute_exit(user, signal):
     broker = user["broker_name"]
 
-    if broker == "ANGEL":
+    if broker == "angelone":
         from executors.angel_executor import angel_order
         return await angel_order(user, signal)
 
-    elif broker == "DHAN":
+    elif broker == "dhan":
         from executors.dhan_executor import dhan_order
         return await dhan_order(user, signal)
 
-    elif broker == "ANT":
+    elif broker == "aliceblue":
         from executors.ant_executer import ant_order
         return await ant_order(user, signal)
 
-    elif broker == "UPSTOX":
+    elif broker == "upstox":
         from executors.upstox_executor import upstox_order
         return await upstox_order(user, signal)
 
-    elif broker == "ZEBU":
+    elif broker == "zebumynt":
         from executors.zebu_executer import zebu_order
         return await zebu_order(user, signal)
 

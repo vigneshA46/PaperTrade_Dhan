@@ -641,6 +641,28 @@ threading.Thread(target=trade_log_worker, daemon=True).start()
     
 
 TOKENS = [CE_ID , PE_ID]
+
+
+
+while True:
+    try:
+
+        feed.run_forever()
+        msg = feed.get_data()
+
+        if msg:
+
+            if str(msg["security_id"]) == INDEX_TOKEN:
+                on_tick_index(msg)
+
+            elif str(msg["security_id"]) in (CE_ID, PE_ID):
+                on_option_tick(msg)
+    except Exception as e:
+        print("WS ERROR:", e)
+        feed.run_forever()
+
+        
+            
 """ 
 def on_tick(token, msg):
 

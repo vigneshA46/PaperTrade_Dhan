@@ -27,7 +27,10 @@ order_id = 362260327171231
 
 res = dhan.get_order_by_id(order_id)
 
-print(res) """
+print(res) 
+
+"""
+
 
 import sys
 import os
@@ -69,6 +72,8 @@ def get_today_deployments():
         print("API Error:", e)
         return None
 
+
+
 def group_users_by_broker(deployments):
     grouped = {}
 
@@ -99,6 +104,8 @@ users = group_users_by_broker(deployments)
 print("FORMATTED USERS:", users)
 
 #changes to be done
+
+
 
 emit_signal({
     "strategy_id": strategy_id,

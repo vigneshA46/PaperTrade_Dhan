@@ -14,7 +14,6 @@ from io import StringIO
 from queue import Queue
 import threading
 from dhanhq import dhanhq
-from dispatcher import subscribe
 
 
 load_dotenv()
@@ -28,7 +27,7 @@ PE_ID  =None
 ACCESS_TOKEN=get_access_token()
 CLIENT_ID=os.getenv("CLIENT_ID")
 SYMBOL = 'BANKNIFTY'
-TRADE_START = dtime(9, 16)
+
 TRADE_END   = dtime(15, 20)
 
 dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
@@ -39,12 +38,12 @@ PE_TARGET_POINTS = 100
 CE_TARGET_POINTS = 100 
 TARGET_POINTS = 100
 
+current_lot = 1
 MAX_LOT = 5
 
 BASE_URL = "https://api.dhan.co/v2"
 FNO_MASTER_URL = f"{BASE_URL}/instrument/NSE_FNO"
 IDX_INTRADAY_URL="https://api.dhan.co/v2/charts/intraday"
-
 
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
@@ -79,6 +78,7 @@ TARGET_PNL = 100
 
 current_lot = 1
 trading_enabled = True
+
 
 cumulative_pnl = 0
 max_profit = 0
@@ -434,9 +434,6 @@ def on_message(msg):
     if state and state["marked"] is None:
         return
 
-    current_moment = ltp - state["entry_price"]
-    state["moment"] = current_moment
-
 
     if state and not state["position"] and not state["trading_disabled"]:
 
@@ -460,14 +457,16 @@ def on_message(msg):
                 event_type="ENTRY",
                 leg_name=leg_name,
                 token=token,
-                symbol=SYMBOL,
+                symbol="NIFTY",
                 side="BUY",
-                lot=state["lot"],
+                lot=current_lot,
                 price=entry_price,
                 reason="TICK +25 ENTRY",
                 pnl=state["pnl"],
                 cum_pnl=combined_pnl
             )
+
+            increment_lot()
 
 
     # =========================
@@ -479,7 +478,7 @@ def on_message(msg):
 
             exit_price = ltp
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * current_lot
 
             current_moment = exit_price - state["entry_price"]
             state["moment"] = current_moment
@@ -495,7 +494,7 @@ def on_message(msg):
                 token=token,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=state["lot"],
+                lot=current_lot,
                 price=exit_price,
                 reason="TSL HIT (TICK)",
                 pnl=state["pnl"],
@@ -542,11 +541,12 @@ def on_message(msg):
 
             exit_price = ltp
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * current_lot
 
             state["pnl"] += pnl
             combined_pnl += pnl
-
+            current_moment = exit_price - state["entry_price"]
+            state["moment"] = current_moment
 
 
             print("🔴 EXIT (-25 TICK)", leg_name, exit_price)
@@ -557,16 +557,14 @@ def on_message(msg):
                 token=token,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=state["lot"],
+                lot=current_lot,
                 price=exit_price,
                 reason="TICK EXIT -25",
                 pnl=state["pnl"],
                 cum_pnl=combined_pnl
             )
 
-            state["position"] = False
-            increment_lot()
-
+            state["position"] = False   
             return  
 
 
@@ -598,10 +596,10 @@ def on_message(msg):
     pe_running = 0
 
     if ce_state["position"]:
-        ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+        ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) * LOTSIZE * current_lot
 
     if pe_state["position"]:
-        pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+        pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * current_lot
 
     telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
     telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
@@ -628,7 +626,7 @@ def handle_leg(name, token, candle, state, ltp):
         if state["position"]:
             exit_price = ltp 
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * current_lot
 
             state["pnl"] += pnl
             combined_pnl += pnl
@@ -639,7 +637,7 @@ def handle_leg(name, token, candle, state, ltp):
                 token=token,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=state["lot"],
+                lot=current_lot,
                 price=exit_price,
                 reason="TIME EXIT",
                 pnl= state["pnl"],
@@ -691,7 +689,7 @@ def handle_leg(name, token, candle, state, ltp):
                 token=token,
                 symbol="NIFTY",
                 side="BUY",
-                lot=state["lot"],
+                lot=current_lot,
                 price=entry_price,
                 reason="Trade opened",
                 pnl= state["pnl"],
@@ -704,16 +702,16 @@ def handle_leg(name, token, candle, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl , CE_TARGET_POINTS , PE_TARGET_POINTS
+    global combined_pnl
 
     ce_running = 0
     pe_running = 0
 
     if ce_state["position"]:
-        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * current_lot
 
     if pe_state["position"]:
-        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * current_lot
 
     total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
 
@@ -727,7 +725,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     
         if ce_state["position"]:
             exit_price = ce_ltp
-            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * current_lot
 
             current_moment = exit_price - ce_state["entry_price"]
             ce_state["moment"] =0.0
@@ -741,13 +739,13 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 token=CE_ID,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=ce_state["lot"],
+                lot=current_lot,
                 price=exit_price,
                 reason="COMBINED EXIT",
                 pnl=ce_state["pnl"],
                 cum_pnl=combined_pnl
             )
-            ce_state["lot"] = 1
+            increment_lot()
             ce_state["trading_disabled"] = True
             pe_state["trading_disabled"] = True
             ce_state["rearm_required"] = True
@@ -765,7 +763,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
-            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * current_lot
 
             current_moment = exit_price - pe_state["entry_price"]
             pe_state["moment"] =0.0
@@ -779,14 +777,14 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 token=PE_ID,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=pe_state["lot"],
+                lot=current_lot,
                 price=exit_price,
                 reason="COMBINED EXIT",
                 pnl=pe_state["pnl"],
                 cum_pnl=combined_pnl
             )
 
-            pe_state["lot"] = 1
+            current_lot = 1
             pe_state["trading_disabled"] = True
             ce_state["trading_disabled"] = True
             pe_state["rearm_required"] = True
@@ -832,9 +830,9 @@ logtradeleg(
     ATM,
     str(today),
     str(CE_ID)
-)   
+    )   
 
-    # Log PE leg
+# Log PE leg
 logtradeleg(
     COMMON_ID,
     "PE",
@@ -842,7 +840,7 @@ logtradeleg(
     str(ATM),
     str(today),
     str(PE_ID)
-)
+    )
 
     
 # =========================
@@ -858,16 +856,23 @@ ce_state["marked"] = get_first_candle_mark(str(CE_ID))
 pe_state["marked"] = get_first_candle_mark(str(PE_ID))
 
 
+instruments = [
+    (marketfeed.NSE_FNO, str(CE_ID), marketfeed.Quote),
+    (marketfeed.NSE_FNO, str(PE_ID), marketfeed.Quote)
+    ]
 
-TOKENS = [CE_ID , PE_ID]
 
-def on_tick(token, msg):
+feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
+ 
+while True:
+    try:
+        feed.run_forever()
+        data = feed.get_data()
 
-    if token not in TOKENS:
-        return  
+        if data:
+                
+            on_message(data)
 
-    on_message(msg)
-
-for t in TOKENS:
-    subscribe(t, on_tick)
-
+    except Exception as e:
+        print("WS ERROR:", e)
+        feed.run_forever()
