@@ -3,6 +3,7 @@ import requests
 from datetime import datetime
 import uuid
 from brokers.angel import AngelAdapter
+import asyncio
 
 API_URL = "https://algoapi.dreamintraders.in/api/realtradegroups"
 
@@ -54,12 +55,12 @@ async def angel_order(user, signal):
 
             print("Payload:",payload)
 
-            response = requests.post(API_URL, json=payload)
+            response = await asyncio.to_thread(requests.post, API_URL, json=payload)
 
-            print("STATUS:", response.status_code)
-            print("RESPONSE:", response.text)
+            print("📥 STATUS:", response.status_code)
+            print("📥 RESPONSE:", response.text)
 
-            if response.status_code == 200:
+            if response.status_code == 201:
                 print("Trade logged successfully")
             else:
                 print(f"API failed: {response.text}")
