@@ -115,7 +115,13 @@ emit_signal({
     "zebusymbol":"NIFTY",
     "is_ce":True,
     "is_fno":True,
-    "antsymbol":"NIFTY"
+    "antsymbol":"NIFTY",
+    "pnl":0,
+    "cum_pnl":0,
+    "reason":"test order",
+    "leg_name":"CE",
+    "event_type":"ENTRY",
+    "price":234.45
 })
 
 loop.run_until_complete(asyncio.sleep(5))
