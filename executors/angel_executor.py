@@ -36,7 +36,7 @@ async def angel_order(user, signal):
 
             payload = {
                 "user_id": user["user_id"],
-                "strategy_id": user["strategy_id"],
+                "strategy_id": signal["strategy_id"],
                 "broker_id": user["broker_account_id"], 
                 "trade_id": str(uuid.uuid4()),
                 "trade_date": datetime.now().strftime("%Y-%m-%d"),
