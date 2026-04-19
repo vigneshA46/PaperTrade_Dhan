@@ -156,7 +156,7 @@ def build_payload(name, side, token):
         "side": side,
         "quantity": LOTSIZE,
         "security_id": token,
-        "token": int(token),
+        "token": int(row["token"]),
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
