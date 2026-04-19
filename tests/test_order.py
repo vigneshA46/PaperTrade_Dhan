@@ -107,7 +107,7 @@ emit_signal({
     "side": "BUY",
     "quantity": 65,
     "security_id": "63426",
-    "token": "63396",
+    "token": 63396,
     "symbol": "NIFTY21APR2623500CE",
     "exchange": "NFO",
     "expiry":"2026-04-21",
