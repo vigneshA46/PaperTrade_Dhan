@@ -136,11 +136,18 @@ print("FORMATTED USERS:", users)
 def build_payload(name, side, token):
 
     if name == "CE":
-        symbol = ce_row["SYMBOL_NAME"]
-        expiry = str(ce_row["SM_EXPIRY_DATE"].date())
+        row = ce_row
     else:
-        symbol = pe_row["SYMBOL_NAME"]
-        expiry = str(pe_row["SM_EXPIRY_DATE"].date())
+        row = pe_row
+
+    expiry_date = row["SM_EXPIRY_DATE"]
+
+    day = expiry_date.strftime("%d")
+    month = expiry_date.strftime("%b").upper()
+    year = expiry_date.strftime("%y")
+
+    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    expiry = expiry_date.strftime("%Y-%m-%d")
 
     return {
         "strategy_id": COMMON_ID,
