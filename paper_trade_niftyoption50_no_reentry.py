@@ -141,7 +141,7 @@ def build_payload(name, side, token):
     else:
         row = AngelPE
 
-    expiry_date = row["SM_EXPIRY_DATE"]
+    expiry_date = ce_row["SM_EXPIRY_DATE"]
 
     day = expiry_date.strftime("%d")
     month = expiry_date.strftime("%b").upper()
