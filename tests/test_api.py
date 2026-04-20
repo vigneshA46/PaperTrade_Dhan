@@ -19,6 +19,7 @@ async def execute_exit(user, signal):
     broker = user["broker_name"]
 
     if broker == "ANGEL":
+        print("user",user,"signal",signal)
         from executors.angel_executor import angel_order
         return await angel_order(user, signal)
 

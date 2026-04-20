@@ -29,6 +29,9 @@ async def angel_order(user, signal):
             quantity=qty
         )
 
+        print("user",user)
+        print("Signal",signal)
+
         print(order_id)
 
         if order_id:
