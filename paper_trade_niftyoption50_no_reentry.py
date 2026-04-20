@@ -415,11 +415,13 @@ else:
 # =========================
 today_date = datetime.now().date()
 
+finder = FindInstrument()
+
 ce_row = find_option_security(fno_df, ATM, "CE", today_date, "NIFTY")
 pe_row = find_option_security(fno_df, ATM, "PE", today_date, "NIFTY")
 
-AngelCE = FindInstrument.get_option("NIFTY" , str(ATM) , 'CE')
-AngelPE = FindInstrument.get_option("NIFTY" , str(ATM) , 'PE')
+AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
+AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
 
 print("angel tokens" , AngelCE , AngelPE)
 
