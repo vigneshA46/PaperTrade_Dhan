@@ -60,7 +60,7 @@ async def exit_strategy(req: ExitRequest):
 
         requests.patch(DEPLOYMENT_STATUS_URL, json=payload)
 
-        user_res = requests.get(USER_DETAILS_URL, params={
+        user_res = requests.patch(USER_DETAILS_URL, json={
             "user_id": req.user_id,
             "strategy_id": req.strategy_id,
             "broker_account_id": req.broker_account_id
