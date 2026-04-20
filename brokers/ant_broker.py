@@ -46,12 +46,13 @@ class AntBroker:
             transactionType=side,
             quantity=str(qty),
             orderComplexity=OrderComplexity.Regular,
-            product=ProductType.Intraday,
+            product=ProductType.MTF,
             orderType=OrderType.Market,
-            price=0,
-            slTriggerPrice="0",      # ✅ REQUIRED
-            slLegPrice="0",          # ✅ REQUIRED
-            targetLegPrice="0",  
+            price='',
+            slTriggerPrice="",      # ✅ REQUIRED
+            slLegPrice="",          # ✅ REQUIRED
+            targetLegPrice="",
+            marketProtectionPercent="",  
             validity=PositionType.posDAY,
             orderTag=tag
         )
