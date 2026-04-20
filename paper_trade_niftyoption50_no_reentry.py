@@ -15,6 +15,7 @@ from queue import Queue
 from signal_emitter import emit_signal
 #from tests.test_order import get_today_deployments, group_users_by_broker
 import asyncio
+from find_instruments import FindInstrument
 
 
 # =========================
@@ -416,6 +417,11 @@ today_date = datetime.now().date()
 
 ce_row = find_option_security(fno_df, ATM, "CE", today_date, "NIFTY")
 pe_row = find_option_security(fno_df, ATM, "PE", today_date, "NIFTY")
+
+AngelCE = FindInstrument.get_option("NIFTY" , str(ATM) , 'CE')
+AngelPE = FindInstrument.get_option("NIFTY" , str(ATM) , 'PE')
+
+print("angel tokens" , AngelCE , AngelPE)
 
 CE_ID = str(ce_row["SECURITY_ID"])
 PE_ID = str(pe_row["SECURITY_ID"])
