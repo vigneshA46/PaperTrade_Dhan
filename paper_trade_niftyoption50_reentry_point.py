@@ -416,7 +416,7 @@ else:
 # =========================
 
 today = datetime.now().date()
-finder=FindInstrument
+finder=FindInstrument()
 
 ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
 pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
