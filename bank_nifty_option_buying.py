@@ -38,7 +38,6 @@ PE_TARGET_POINTS = 100
 CE_TARGET_POINTS = 100 
 TARGET_POINTS = 100
 
-current_lot = 1
 MAX_LOT = 5
 
 BASE_URL = "https://api.dhan.co/v2"
@@ -394,7 +393,7 @@ def reset_lot():
 
 def on_message(msg):
 
-    global combined_pnl
+    global combined_pnl , current_lot
 
     if msg.get("type") != "Quote Data":
         return
@@ -608,7 +607,7 @@ def on_message(msg):
 
 def handle_leg(name, token, candle, state, ltp):
 
-    global combined_pnl
+    global combined_pnl , current_lot
 
     now = datetime.now(IST).time()
 
@@ -702,7 +701,7 @@ def handle_leg(name, token, candle, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl
+    global combined_pnl , current_lot
 
     ce_running = 0
     pe_running = 0
