@@ -1,8 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import requests
+import re
+from datetime import datetime
+from find_instrument import FindInstrument
+from find_security import load_fno_master, find_option_security
+
 
 router = APIRouter()
+finder = FindInstrument()
+fno_df=load_fno_master()
 
 DEPLOYMENT_STATUS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentrades"
@@ -14,6 +21,23 @@ class ExitRequest(BaseModel):
     broker_account_id: str
     date: str
 
+
+def parse_symbol(symbol: str):
+    match = re.match(r"([A-Z]+)(\d{2})([A-Z]{3})(\d{2})(\d+)(CE|PE)", symbol)
+
+    if not match:
+        raise ValueError(f"Invalid symbol format: {symbol}")
+
+    underlying, day, mon, year, strike, opt_type = match.groups()
+
+    expiry = datetime.strptime(f"{day}{mon}{year}", "%d%b%y").strftime("%Y-%m-%d")
+
+    return {
+        "underlying": underlying,
+        "strike": int(strike),
+        "option_type": opt_type,
+        "expiry": expiry
+    }
 
 async def execute_exit(user, signal):
     broker = user["broker_name"]
@@ -89,7 +113,29 @@ async def exit_strategy(req: ExitRequest):
                 if trade.get("event_type") != "ENTRY":
                     continue
 
+                parsed = parse_symbol(trade["symbol"])
+
+                ce_row = find_option_security(
+                    fno_df,
+                    parsed["strike"],
+                    parsed["option_type"],
+                    parsed["expiry"],
+                    parsed["underlying"]
+                )
+
+                security_id = ce_row["SECURITY_ID"]
+
+                cerow = finder.get_option(
+                    parsed["underlying"],
+                    parsed["strike"],
+                    parsed["option_type"]
+                )
+
+                token = cerow["token"]
+
                 exit_side = "SELL" if trade["side"] == "BUY" else "BUY"
+
+
 
         
                 user = {
@@ -101,18 +147,37 @@ async def exit_strategy(req: ExitRequest):
                 }
 
                 signal = {
-                    "symbol": trade.get("symbol"),
-                    "token": trade.get("token"),
-                    "security_id": trade.get("security_id"),
-                    "instrument_token": trade.get("instrument_token"),
-                    "exchange": trade.get("exchange"),
-                    "quantity": trade.get("quantity"),
+                    "strategy_id": req.strategy_id,
+
+                    "option": parsed["option_type"],
                     "side": exit_side,
-                    "is_fno": trade.get("is_fno"),
-                    "strike": trade.get("strike"),
-                    "expiry": trade.get("expiry"),
-                    "is_ce": trade.get("is_ce"),
-                }
+                    "quantity": trade["quantity"],
+
+                    "security_id": security_id,
+                    "token": token,
+
+                    "symbol": trade["symbol"],
+                    "exchange": "NFO",
+
+                    "expiry": parsed["expiry"],
+                    "strike": parsed["strike"],
+
+                    "zebusymbol": parsed["underlying"],
+                    "antsymbol": parsed["underlying"],
+
+                    "is_ce": parsed["option_type"] == "CE",
+                    "is_fno": True,
+
+                    "pnl": float(trade.get("pnl", 0)),
+                    "cum_pnl": float(trade.get("cum_pnl", 0)),
+
+                    "reason": "AUTO EXIT",
+                    "leg_name": trade.get("leg_name"),
+                    "event_type": "EXIT",
+
+                    "price": float(trade.get("price", 0))
+                    }
+
 
                 if not signal["token"]:
                     print(f"Skipping {signal['symbol']} - token missing")
