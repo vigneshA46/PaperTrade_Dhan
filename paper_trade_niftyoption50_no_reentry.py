@@ -137,9 +137,9 @@ print("FORMATTED USERS:", users)
 def build_payload(name, side, token):
 
     if name == "CE":
-        row = ce_row
+        row = AngelCE
     else:
-        row = pe_row
+        row = AngelPE
 
     expiry_date = row["SM_EXPIRY_DATE"]
 
