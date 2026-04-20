@@ -134,7 +134,7 @@ users = group_users_by_broker(deployments)
 
 print("FORMATTED USERS:", users)
 
-def build_payload(name, side, token , reason,event_type):
+def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl):
 
     if name == "CE":
         row = AngelCE
@@ -159,10 +159,14 @@ def build_payload(name, side, token , reason,event_type):
         "security_id": token,
         "token": int(row["token"]),
         "event_type": event_type,
+        "leg_name": name,
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
         "strike": ATM,
+        "price":ltp,
+        "pnl":pnl,
+        "cum_pnl":cum_pnl,
         "zebusymbol": "NIFTY",
         "is_ce": True if name == "CE" else False,
         "is_fno": True,
@@ -497,7 +501,6 @@ def handle_leg(name, token, candle, state, ltp):
         
         if state["position"]:
 
-            asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT")))
 
 
             exit_price = ltp
@@ -507,6 +510,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["pnl"] += pnl
             combined_pnl += pnl
 
+            asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name=name,
@@ -547,7 +551,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["position"] = True
 
             print("🟢 BUY", name, entry_price)
-            asyncio.create_task(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY")))
+            asyncio.create_task(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl)))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -585,7 +589,7 @@ def tick_exit_check(name, token, state, ltp):
         
 
         print("⚡ TICK EXIT", name, exit_price)
-        asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT")))
+        asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
 
         log_trade_event(
             event_type="EXIT",
@@ -630,7 +634,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if ce_state["moment"] >= CE_TARGET_POINTS and not ce_state["trading_disabled"]:
 
         print("🏁 CE 50 points hit")
-        asyncio.create_task(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT")))
+        asyncio.create_task(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
 
 
         # EXIT CE
@@ -668,7 +672,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["moment"] >= PE_TARGET_POINTS and not pe_state["trading_disabled"]:
 
         print("🏁 PE 50 points hit")
-        asyncio.create_task(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT")))
+        asyncio.create_task(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
         # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
