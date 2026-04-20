@@ -15,7 +15,7 @@ from queue import Queue
 from signal_emitter import emit_signal
 #from tests.test_order import get_today_deployments, group_users_by_broker
 import asyncio
-from find_instruments import FindInstrument
+from find_instrument import FindInstrument
 
 
 # =========================
