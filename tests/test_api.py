@@ -6,7 +6,7 @@ router = APIRouter()
 
 DEPLOYMENT_STATUS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentrades"
-USER_DETAILS_URL = "https://algoapi.dreamintraders.in/api/deployments/user"
+USER_DETAILS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 
 
 class ExitRequest(BaseModel):
