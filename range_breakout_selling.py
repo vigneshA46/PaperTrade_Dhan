@@ -10,11 +10,12 @@ from dhanhq import dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from dispatcher import subscribe
-
 from find_security import load_fno_master, find_option_security
-
 from queue import Queue
 import threading
+import asyncio
+from find_instrument import FindInstrument
+
 # =========================
 # CONFIG
 # =========================
@@ -60,6 +61,99 @@ dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
 
 builder = OneMinuteCandleBuilder()
 fno_df = load_fno_master()
+
+strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+loop = asyncio.get_event_loop()
+
+def get_today_deployments():
+    url = f"https://algoapi.dreamintraders.in/api/deployments/today/{strategy_id}"
+
+    try:
+        response = requests.get(url, timeout=10)
+
+        # Raise error if status not 200
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 👉 store in variable (this is what you asked)
+        user_deployments = data
+
+        return user_deployments
+
+    except requests.exceptions.RequestException as e:
+        print("API Error:", e)
+        return None
+
+def group_users_by_broker(deployments):
+    grouped = {}
+
+    if not deployments:
+        return grouped
+
+    for d in deployments:
+
+        if d["type"] == "paper":
+            continue
+        broker = d.get("broker_name")
+
+        if not broker:
+            continue
+
+        if broker not in grouped:
+            grouped[broker] = []
+
+        grouped[broker].append(d)
+
+    return grouped
+
+
+deployments = get_today_deployments()
+
+users = group_users_by_broker(deployments)
+
+print("FORMATTED USERS:", users)
+
+def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl):
+    global AngelCE,AngelPE,ce_row
+
+    if name == "CE":
+        row = AngelCE
+    else:
+        row = AngelPE
+
+    expiry_date = ce_row["SM_EXPIRY_DATE"]
+
+    day = expiry_date.strftime("%d")
+    month = expiry_date.strftime("%b").upper()
+    year = expiry_date.strftime("%y")
+
+    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    expiry = expiry_date.strftime("%Y-%m-%d")
+
+    return {
+        "strategy_id": COMMON_ID,
+        "users": users,
+        "option": name,
+        "side": side,
+        "quantity": LOTSIZE,
+        "security_id": token,
+        "token": int(row["token"]),
+        "event_type": event_type,
+        "leg_name": name,
+        "symbol": symbol,
+        "exchange": "NFO",
+        "expiry":expiry,
+        "strike": ATM,
+        "price":ltp,
+        "pnl":pnl,
+        "cum_pnl":cum_pnl,
+        "zebusymbol": "NIFTY",
+        "is_ce": True if name == "CE" else False,
+        "is_fno": True,
+        "antsymbol": "NIFTY",
+        "reason":reason
+    }
 
 
 
@@ -291,6 +385,11 @@ def mark_range():
 
     ce_strike = ATM - 400
     pe_strike = ATM + 400
+
+    finder = FindInstrument()
+
+    AngelCE = finder.get_option("NIFTY", int(ce_strike), "CE")
+    AngelPE = finder.get_option("NIFTY", int(pe_strike), "PE")
 
     ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
     pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")

@@ -12,6 +12,9 @@ from find_security import load_fno_master, find_option_security
 import threading
 from dispatcher import subscribe
 from queue import Queue
+from signal_emitter import emit_signal
+import asyncio
+from find_instrument import FindInstrument
 
 
 # =========================
@@ -62,6 +65,99 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 combined_exit_active = False
 dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
+
+
+strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+loop = asyncio.get_event_loop()
+
+def get_today_deployments():
+    url = f"https://algoapi.dreamintraders.in/api/deployments/today/{strategy_id}"
+
+    try:
+        response = requests.get(url, timeout=10)
+
+        # Raise error if status not 200
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 👉 store in variable (this is what you asked)
+        user_deployments = data
+
+        return user_deployments
+
+    except requests.exceptions.RequestException as e:
+        print("API Error:", e)
+        return None
+
+def group_users_by_broker(deployments):
+    grouped = {}
+
+    if not deployments:
+        return grouped
+
+    for d in deployments:
+
+        if d["type"] == "paper":
+            continue
+        broker = d.get("broker_name")
+
+        if not broker:
+            continue
+
+        if broker not in grouped:
+            grouped[broker] = []
+
+        grouped[broker].append(d)
+
+    return grouped
+
+
+deployments = get_today_deployments()
+
+users = group_users_by_broker(deployments)
+
+print("FORMATTED USERS:", users)
+
+def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl):
+
+    if name == "CE":
+        row = AngelCE
+    else:
+        row = AngelPE
+
+    expiry_date = ce_row["SM_EXPIRY_DATE"]
+
+    day = expiry_date.strftime("%d")
+    month = expiry_date.strftime("%b").upper()
+    year = expiry_date.strftime("%y")
+
+    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    expiry = expiry_date.strftime("%Y-%m-%d")
+
+    return {
+        "strategy_id": COMMON_ID,
+        "users": users,
+        "option": name,
+        "side": side,
+        "quantity": LOTSIZE,
+        "security_id": token,
+        "token": int(row["token"]),
+        "event_type": event_type,
+        "leg_name": name,
+        "symbol": symbol,
+        "exchange": "NFO",
+        "expiry":expiry,
+        "strike": ATM,
+        "price":ltp,
+        "pnl":pnl,
+        "cum_pnl":cum_pnl,
+        "zebusymbol": "NIFTY",
+        "is_ce": True if name == "CE" else False,
+        "is_fno": True,
+        "antsymbol": "NIFTY",
+        "reason":reason
+    }
 
 # =========================
 # HELPERS
@@ -322,9 +418,16 @@ else:
 # =========================
 
 today = datetime.now().date()
+finder=FindInstrument()
 
 ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
 pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
+
+
+AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
+AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
+
+print("angel tokens" , AngelCE , AngelPE)
 
 CE_ID = str(ce_row["SECURITY_ID"])
 PE_ID = str(pe_row["SECURITY_ID"])
@@ -417,6 +520,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["pnl"] += pnl
             combined_pnl += pnl
 
+            asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl)))
             log_trade_event(
                 
                 event_type="EXIT",
@@ -458,6 +562,8 @@ def handle_leg(name, token, candle, state, ltp):
             state["position"] = True
 
             print("🟢 BUY", name, entry_price)
+            asyncio.create_task(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl)))
+
 
             log_trade_event(
                 event_type="ENTRY",
@@ -539,6 +645,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if total >= TARGET_POINTS*65 and not ce_state["trading_disabled"] and not pe_state["trading_disabled"] :
 
         print("🏁 TARGET HIT", total)
+        
 
         # FORCE EXIT CE
         if ce_state["position"]:
@@ -546,6 +653,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             ce_state["pnl"] += pnl
+
+            asyncio.create_task(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl))) 
 
             log_trade_event(
                 event_type="EXIT",
@@ -573,7 +682,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             pe_state["pnl"] += pnl
-
+            
+            asyncio.create_task(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl))) 
             log_trade_event(
                 event_type="EXIT",
                 leg_name="PE",
@@ -609,6 +719,7 @@ def tick_exit_check(name, token, state, ltp):
         combined_pnl += pnl
 
         print("⚡ TICK EXIT", name, exit_price)
+        asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
 
         log_trade_event(
             event_type="EXIT",
