@@ -785,7 +785,7 @@ TOKENS = [
 ]
 
 MY_TOKENS = [CE_ID , PE_ID]
-""" 
+
 def on_tick(token, msg):
 
     if token not in MY_TOKENS:
@@ -796,8 +796,10 @@ def on_tick(token, msg):
     
 for t in TOKENS:
     subscribe(t, on_tick)
-  """
+ 
 
+
+""" 
 instruments = [
     (marketfeed.NSE_FNO, CE_ID,marketfeed.Quote),
     (marketfeed.NSE_FNO, PE_ID,marketfeed.Quote)
@@ -820,3 +822,4 @@ while True:
         print("WS ERROR:", e)
         feed.run_forever()
 
+ """
