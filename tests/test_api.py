@@ -6,6 +6,7 @@ router = APIRouter()
 
 DEPLOYMENT_STATUS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentrades"
+USER_DETAILS_URL = "https://algoapi.dreamintraders.in/api/deployments/user"
 
 
 class ExitRequest(BaseModel):
@@ -18,7 +19,7 @@ class ExitRequest(BaseModel):
 async def execute_exit(user, signal):
     broker = user["broker_name"]
 
-    if broker == "ANGEL":
+    if broker == "angelone":
         print("user",user,"signal",signal)
         from executors.angel_executor import angel_order
         return await angel_order(user, signal)
@@ -59,6 +60,23 @@ async def exit_strategy(req: ExitRequest):
 
         requests.patch(DEPLOYMENT_STATUS_URL, json=payload)
 
+        user_res = requests.get(USER_DETAILS_URL, params={
+            "user_id": req.user_id,
+            "strategy_id": req.strategy_id,
+            "broker_account_id": req.broker_account_id
+        })
+
+        if user_res.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to fetch user credentials")
+
+        user_data = user_res.json()
+
+        credentials = user_data.get("credentials")
+        broker_name = user_data.get("broker_name")
+
+        if not credentials:
+            raise HTTPException(status_code=500, detail="Credentials missing")
+
         open_res = requests.get(OPEN_TRADES_URL, json={
             "user_id": req.user_id,
             "strategy_id": req.strategy_id,
@@ -78,14 +96,6 @@ async def exit_strategy(req: ExitRequest):
 
         results = []
 
-        broker_map = {
-            "angelone": "ANGEL",
-            "dhan": "DHAN",
-            "ant": "ANT",
-            "upstox": "UPSTOX",
-            "zebu": "ZEBU"
-        }
-
         for trade in open_positions:
             try:
         
@@ -96,11 +106,11 @@ async def exit_strategy(req: ExitRequest):
 
         
                 user = {
-                    "user_id": trade.get("user_id"),
-                    "broker_name": broker_map.get(trade.get("broker_name").lower()),
-                    "broker_account_id": trade.get("broker_id"),
+                    "user_id": req.user_id,
+                    "broker_name": broker_name,
+                    "broker_account_id": req.broker_account_id,
                     "multiplier": 1,
-                    "credentials": trade.get("credentials")
+                    "credentials": credentials   
                 }
 
                 signal = {
@@ -116,6 +126,15 @@ async def exit_strategy(req: ExitRequest):
                     "expiry": trade.get("expiry"),
                     "is_ce": trade.get("is_ce"),
                 }
+
+                if not signal["token"]:
+                    print(f"Skipping {signal['symbol']} - token missing")
+                    results.append({
+                        "trade_id": trade.get("id"),
+                        "status": "FAILED",
+                        "error": "Token missing"
+                    })
+                    continue
 
                 await execute_exit(user, signal)
 
