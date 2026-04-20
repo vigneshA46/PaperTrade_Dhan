@@ -36,7 +36,6 @@ async def angel_order(user, signal):
             print(f"✅ ANGEL order success {user['user_id']}")
 
             payload = {
-                "order_id":order_id,
                 "user_id": user["user_id"],
                 "strategy_id": signal["strategy_id"],
                 "broker_id": user["broker_account_id"], 
