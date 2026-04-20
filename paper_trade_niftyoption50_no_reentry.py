@@ -784,6 +784,13 @@ for t in TOKENS:
     subscribe(t, on_tick)
   """
 
+instruments = [
+    (marketfeed.NSE_FNO, CE_ID,marketfeed.Quote),
+    (marketfeed.NSE_FNO, PE_ID,marketfeed.Quote)
+]
+
+feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
+
 
 
 while True:
