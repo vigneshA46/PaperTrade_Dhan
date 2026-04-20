@@ -94,10 +94,10 @@ async def exit_strategy(req: ExitRequest):
         
                 user = {
                     "user_id": req.user_id,
-                    "broker_name": broker_name,
+                    "broker_name": trade.get("broker_name"),
                     "broker_account_id": req.broker_account_id,
                     "multiplier": 1,
-                    "credentials": credentials   
+                    "credentials": trade.get("credentials")   
                 }
 
                 signal = {
