@@ -771,7 +771,7 @@ TOKENS = [
 ]
 
 MY_TOKENS = [CE_ID , PE_ID]
-
+""" 
 def on_tick(token, msg):
 
     if token not in MY_TOKENS:
@@ -782,4 +782,20 @@ def on_tick(token, msg):
     
 for t in TOKENS:
     subscribe(t, on_tick)
- 
+  """
+
+
+
+while True:
+    try:
+
+        feed.run_forever()
+        msg = feed.get_data()
+
+        if msg:
+            if str(msg["security_id"]) in (CE_ID, PE_ID):
+                on_message(msg)
+    except Exception as e:
+        print("WS ERROR:", e)
+        feed.run_forever()
+
