@@ -67,7 +67,7 @@ combined_exit_active = False
 dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
 
-strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+strategy_id = "c3d9beec-065b-4893-9689-3506a101669d"
 loop = asyncio.get_event_loop()
 
 def get_today_deployments():

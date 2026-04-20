@@ -64,7 +64,7 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
 
-strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+strategy_id = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"
 loop = asyncio.get_event_loop()
 
 def get_today_deployments():

@@ -67,7 +67,7 @@ dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
 
 
-strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+strategy_id = "adb83f48-262a-4ddf-968f-9e639474bf89"
 loop = asyncio.get_event_loop()
 
 def get_today_deployments():
