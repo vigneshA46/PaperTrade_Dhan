@@ -6,7 +6,6 @@ router = APIRouter()
 
 DEPLOYMENT_STATUS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentrades"
-USER_DETAILS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 
 
 class ExitRequest(BaseModel):
@@ -62,24 +61,6 @@ async def exit_strategy(req: ExitRequest):
 
         print("exiting done")
 
-        user_res = requests.patch(USER_DETAILS_URL, json={
-            "user_id": req.user_id,
-            "strategy_id": req.strategy_id,
-            "broker_account_id": req.broker_account_id
-        })
-
-        if user_res.status_code != 200:
-            print("❌ USER API ERROR:", user_res.status_code, user_res.text)
-            raise HTTPException(status_code=500, detail=f"User API failed: {user_res.text}")
-
-        user_data = user_res.json()
-
-        credentials = user_data.get("credentials")
-        broker_name = user_data.get("broker_name")
-
-        if not credentials:
-            raise HTTPException(status_code=500, detail="Credentials missing")
-
         open_res = requests.get(OPEN_TRADES_URL, json={
             "user_id": req.user_id,
             "strategy_id": req.strategy_id,
@@ -91,6 +72,9 @@ async def exit_strategy(req: ExitRequest):
             raise HTTPException(status_code=500, detail=f"Failed to fetch positions: {open_res.text}")
 
         open_positions = open_res.json()
+
+        print("open_positions")
+        print(open_positions)
 
         if not open_positions:
             payload["status"] = "CLOSED"
