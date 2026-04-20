@@ -67,7 +67,8 @@ async def exit_strategy(req: ExitRequest):
         })
 
         if user_res.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch user credentials")
+            print("❌ USER API ERROR:", user_res.status_code, user_res.text)
+            raise HTTPException(status_code=500, detail=f"User API failed: {user_res.text}")
 
         user_data = user_res.json()
 
