@@ -18,7 +18,7 @@ class ExitRequest(BaseModel):
 async def execute_exit(user, signal):
     broker = user["broker_name"]
 
-    if broker == "angelone":
+    if broker == "ANGEL":
         from executors.angel_executor import angel_order
         return await angel_order(user, signal)
 
