@@ -57,6 +57,7 @@ LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
 
+
 # =========================
 # LOGIN
 # =========================
@@ -65,7 +66,17 @@ dhan = dhanhq(client_id, access_token)
 fno_df = load_fno_master()
 
 strategy_id = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"
-loop = asyncio.get_event_loop()
+
+loop = asyncio.new_event_loop()
+
+def start_loop():
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+threading.Thread(target=start_loop, daemon=True).start()
+
+def run_async(coro):
+    asyncio.run_async_coroutine_threadsafe(coro, loop)
 
 def get_today_deployments():
     url = f"https://algoapi.dreamintraders.in/api/deployments/today/{strategy_id}"
@@ -517,7 +528,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["pnl"] += pnl
             combined_pnl += pnl
 
-            asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl)))
+            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl)))
             log_trade_event(
                 
                 event_type="EXIT",
@@ -559,7 +570,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["position"] = True
 
             print("🟢 BUY", name, entry_price)
-            asyncio.create_task(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl)))
+            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl)))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -594,7 +605,7 @@ def tick_exit_check(name, token, state, ltp):
         combined_pnl += pnl
 
         print("⚡ TICK EXIT", name, exit_price)
-        asyncio.create_task(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
+        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
 
 
         log_trade_event(
@@ -650,7 +661,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if ce_total >= CE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
-        asyncio.create_task(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
+        run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
         
 
         # FORCE EXIT CE
@@ -681,7 +692,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_total >= PE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
-        asyncio.create_task(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
+        run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
 
         # FORCE EXIT PE
         if pe_state["position"]:
