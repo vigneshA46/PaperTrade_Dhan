@@ -7,7 +7,7 @@ import paper_trade_niftyoption50_reentry_point as strategy5
 #import range_breakout_selling as strategy5
 #import delta_option_buying as strategy6
 #import bank_nifty_option_buying as strategy7
-#import paper_trade_niftyoption8_no_reentry as strategy8
+import paper_trade_niftyoption8_no_reentry as strategy8
 from dhanhq import marketfeed
 from dhanhq import dhanhq
 from dhan_token import get_access_token
@@ -22,7 +22,7 @@ ALL_TOKENS.update(strategy1.TOKENS)
 ALL_TOKENS.update(strategy5.TOKENS)
 ALL_TOKENS.update(strategy4.TOKENS)
 
-#ALL_TOKENS.update(strategy8.TOKENS)
+ALL_TOKENS.update(strategy8.TOKENS)
 #ALL_TOKENS.update(strategy2.TOKENS)
 #ALL_TOKENS.update(strategy3.TOKENS)
 
