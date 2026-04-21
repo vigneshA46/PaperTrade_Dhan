@@ -14,6 +14,13 @@ fno_df=load_fno_master()
 DEPLOYMENT_STATUS_URL = "https://algoapi.dreamintraders.in/api/deployments/user/status"
 OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentrades"
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+async def get_db():
+    return await asyncpg.connect(DATABASE_URL)
+
+
+
 
 class ExitRequest(BaseModel):
     user_id: str
@@ -212,3 +219,80 @@ async def exit_strategy(req: ExitRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.get("/flattrade/callback")
+async def flattrade_callback(request: Request):
+    try:
+        request_code = request.query_params.get("request_code")
+        broker_id = request.query_params.get("state")
+
+        if not request_code or not broker_id:
+            raise HTTPException(status_code=400, detail="Missing request_code or brokerId")
+
+        conn = await get_db()
+
+        # 🔍 Fetch broker
+        broker = await conn.fetchrow(
+            "SELECT * FROM broker_accounts WHERE id = $1",
+            broker_id
+        )
+
+        if not broker:
+            await conn.close()
+            raise HTTPException(status_code=404, detail="Broker not found")
+
+        credentials = broker["credentials"]
+        api_key = credentials.get("apiKey")
+        api_secret = credentials.get("apiSecret")
+
+        # 🔐 SHA256(apiKey + request_code + apiSecret)
+        raw = f"{api_key}{request_code}{api_secret}"
+        hash_value = hashlib.sha256(raw.encode()).hexdigest()
+
+        # 🔁 Exchange token
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://authapi.flattrade.in/trade/apitoken",
+                json={
+                    "api_key": api_key,
+                    "request_code": request_code,
+                    "api_secret": hash_value
+                }
+            )
+
+        data = response.json()
+
+        if data.get("status") != "Ok":
+            await conn.close()
+            raise HTTPException(
+                status_code=400,
+                detail=data.get("emsg", "FlatTrade auth failed")
+            )
+
+        # ✅ Update DB
+        await conn.execute(
+            """
+            UPDATE broker_accounts
+            SET credentials = credentials || $1::jsonb,
+                status = 'connected'
+            WHERE id = $2
+            """,
+            {
+                "accessToken": data.get("token"),
+                "clientId": data.get("client")
+            },
+            broker_id
+        )
+
+        await conn.close()
+
+        # 🔁 Redirect to frontend
+        return RedirectResponse(url="http://localhost:5173/brokers")
+
+    except Exception as err:
+        print("FlatTrade Callback Error:", str(err))
+        raise HTTPException(status_code=500, detail="FlatTrade connection failed")
+
+        
