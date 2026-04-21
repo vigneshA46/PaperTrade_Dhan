@@ -76,7 +76,13 @@ def start_loop():
 threading.Thread(target=start_loop, daemon=True).start()
 
 def run_async(coro):
-    asyncio.run_async_coroutine_threadsafe(coro, loop)
+    try:
+        if asyncio.iscoroutine(coro):
+            asyncio.run_coroutine_threadsafe(coro, loop)
+        else:
+            print("❌ Not coroutine:", coro)
+    except Exception as e:
+        print("WS error: ", e)
 
 def get_today_deployments():
     url = f"https://algoapi.dreamintraders.in/api/deployments/today/{strategy_id}"
