@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException , Request
 from pydantic import BaseModel
 import requests
 import re
@@ -6,6 +6,11 @@ from datetime import datetime
 from find_instrument import FindInstrument
 from find_security import load_fno_master, find_option_security
 import os
+from fastapi.responses import RedirectResponse
+import httpx
+import hashlib
+import asyncpg
+import json
 
 
 router = APIRouter()
@@ -222,9 +227,9 @@ async def exit_strategy(req: ExitRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 @router.get("/flattrade/callback")
 async def flattrade_callback(request: Request):
+    conn = None
     try:
         request_code = request.query_params.get("request_code")
         broker_id = request.query_params.get("state")
@@ -241,12 +246,14 @@ async def flattrade_callback(request: Request):
         )
 
         if not broker:
-            await conn.close()
             raise HTTPException(status_code=404, detail="Broker not found")
 
-        credentials = broker["credentials"]
+        credentials = broker["credentials"] or {}
         api_key = credentials.get("apiKey")
         api_secret = credentials.get("apiSecret")
+
+        if not api_key or not api_secret:
+            raise HTTPException(status_code=400, detail="Invalid broker credentials")
 
         # 🔐 SHA256(apiKey + request_code + apiSecret)
         raw = f"{api_key}{request_code}{api_secret}"
@@ -266,13 +273,17 @@ async def flattrade_callback(request: Request):
         data = response.json()
 
         if data.get("status") != "Ok":
-            await conn.close()
             raise HTTPException(
                 status_code=400,
                 detail=data.get("emsg", "FlatTrade auth failed")
             )
 
-        # ✅ Update DB
+        # ✅ FIX: Convert dict → JSON string
+        update_data = json.dumps({
+            "accessToken": data.get("token"),
+            "clientId": data.get("client")
+        })
+
         await conn.execute(
             """
             UPDATE broker_accounts
@@ -280,19 +291,17 @@ async def flattrade_callback(request: Request):
                 status = 'connected'
             WHERE id = $2
             """,
-            {
-                "accessToken": data.get("token"),
-                "clientId": data.get("client")
-            },
+            update_data,
             broker_id
         )
 
-        await conn.close()
-
-        # 🔁 Redirect to frontend
+        # 🔁 Redirect
         return RedirectResponse(url="http://localhost:5173/brokers")
 
     except Exception as err:
         print("FlatTrade Callback Error:", str(err))
         raise HTTPException(status_code=500, detail="FlatTrade connection failed")
 
+    finally:
+        if conn:
+            await conn.close()
