@@ -17,6 +17,8 @@ from dhanhq import dhanhq
 from signal_emitter import emit_signal
 import asyncio
 from find_instrument import FindInstrument
+from dispatcher import subscribe
+
 
 
 load_dotenv()
@@ -988,7 +990,23 @@ instruments = [
 
 
 feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
- 
+
+TOKENS = [CE_ID , PE_ID]
+
+
+
+def on_tick(token, msg):
+    if token not in TOKENS:
+        return  
+
+    on_message(msg)
+
+for t in TOKENS:
+    subscribe(t, on_tick)
+
+
+
+""" 
 while True:
     try:
         feed.run_forever()
@@ -1001,3 +1019,4 @@ while True:
     except Exception as e:
         print("WS ERROR:", e)
         feed.run_forever()
+ """
