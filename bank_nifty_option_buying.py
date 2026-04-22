@@ -193,10 +193,10 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl):
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
-        "zebusymbol": "NIFTY",
+        "zebusymbol": "BANKNIFTY",
         "is_ce": True if name == "CE" else False,
         "is_fno": True,
-        "antsymbol": "NIFTY",
+        "antsymbol": "BANKNIFTY",
         "reason":reason
     }
 
@@ -932,8 +932,8 @@ PE_ID = str(pe["SECURITY_ID"])   # <-- FIXED
 
 finder=FindInstrument()
 
-AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
+AngelCE = finder.get_option("BANKNIFTY" , int(ATM) , "CE")
+AngelPE = finder.get_option("BANKNIFTY" , int(ATM) , "PE")
 
 print("angel tokens" , AngelCE , AngelPE)
 
