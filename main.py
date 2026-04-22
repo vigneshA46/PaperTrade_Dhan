@@ -1,6 +1,6 @@
 from dispatcher import publish
 import paper_trade_niftyoption50_no_reentry as strategy1
-#import paper_trade_niftyoption50_reentry as strategy2
+import paper_trade_niftyoption50_reentry as strategy2
 import paper_trade_niftyoption35_reentry as strategy3
 import paper_trade_niftyoption35_reentry_point as strategy4
 import paper_trade_niftyoption50_reentry_point as strategy5
