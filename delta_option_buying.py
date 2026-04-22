@@ -62,7 +62,7 @@ LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
 #today = "2026-04-06"
-strategy_id = "adb83f48-262a-4ddf-968f-9e639474bf89"
+strategy_id = "a6bbea5c-ee7e-41c2-b39a-fb4703422d36"
 
 loop = asyncio.new_event_loop()
 

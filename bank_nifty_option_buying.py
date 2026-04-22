@@ -92,7 +92,7 @@ engine_start_time = datetime.now(IST).strftime("%H:%M:%S")
 
 
 
-strategy_id = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"
+strategy_id = "f3190e0b-c44f-4242-9eb4-474967faf1f2"
 
 loop = asyncio.new_event_loop()
 
