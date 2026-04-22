@@ -785,12 +785,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("50 reentry CE",token)
+            print("35 reentry point CE",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("50 reentry PE",token)
+            print("35 reentry point PE",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
