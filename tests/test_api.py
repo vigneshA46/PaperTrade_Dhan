@@ -227,6 +227,7 @@ async def exit_strategy(req: ExitRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
 @router.get("/flattrade/callback")
 async def flattrade_callback(request: Request):
     conn = None
