@@ -22,7 +22,7 @@ OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentra
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-async def get_db():
+async def   ():
     return await asyncpg.connect(DATABASE_URL)
 
 
@@ -256,6 +256,8 @@ async def flattrade_callback(request: Request):
         credentials = broker["credentials"] or {}
         api_key = credentials.get("apiKey")
         api_secret = credentials.get("apiSecret")
+
+        print(credentials)
 
         if not api_key or not api_secret:
             raise HTTPException(status_code=400, detail="Invalid broker credentials")
