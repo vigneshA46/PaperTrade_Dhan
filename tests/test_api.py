@@ -268,6 +268,8 @@ async def flattrade_callback(request: Request):
                     }
                 )
 
+            print(response)
+
         raw_text = response.text.strip()
 
         print(raw_text)
