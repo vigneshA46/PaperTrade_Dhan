@@ -22,7 +22,7 @@ OPEN_TRADES_URL = "https://algoapi.dreamintraders.in/api/realtradegroups/opentra
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-async def   ():
+async def():
     return await asyncpg.connect(DATABASE_URL)
 
 
