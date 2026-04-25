@@ -4,15 +4,18 @@ import paper_trade_niftyoption50_reentry as strategy2
 import paper_trade_niftyoption35_reentry as strategy3
 import paper_trade_niftyoption35_reentry_point as strategy4
 import paper_trade_niftyoption50_reentry_point as strategy5
-#import range_breakout_selling as strategy5
+
 import delta_option_buying as strategy6
 import bank_nifty_option_buying as strategy7
 import paper_trade_niftyoption8_no_reentry as strategy8
 from dhanhq import marketfeed
 from dhanhq import dhanhq
+from datetime import datetime
 from dhan_token import get_access_token
 from dotenv import load_dotenv
 import os
+
+rb_started = False
 
 # collect all tokens
 ALL_TOKENS = set()
@@ -48,6 +51,27 @@ def on_message(msg):
 
 while True:
     try:
+
+        now = datetime.now()
+
+        if not rb_started and now.hour == 10 and now.minute >= 0:
+            import range_breakout_selling as strategy9
+
+            print("Starting Range Breakout Strategy")
+
+            ALL_TOKENS.update(strategy9.TOKENS)
+
+            instruments = [
+                (marketfeed.NSE_FNO, token, marketfeed.Quote)
+                for (token) in ALL_TOKENS
+            ]
+
+            feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
+
+            feed.on_message = on_message
+
+            rb_started = True
+
         feed.run_forever()
         data = feed.get_data()
 

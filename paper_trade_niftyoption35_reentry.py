@@ -612,23 +612,22 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
 
-    if ce_state["position"] or ce_state["position"]:
+    if ce_state["position"] or pe_state["position"]:
         telemetry["status"] = 'RUNNING'
 
     ce_total = ce_state["pnl"] + ce_running
     pe_total = pe_state["pnl"] + pe_running
 
-    combined_total = ce_total + pe_total
+    #combined_total = ce_total + pe_total
 
     # =========================
     # ✅ COMBINED EXIT (TICK LEVEL SAFE)
     # =========================
 
 
-    if ce_total >= PE_TARGET_POINTS*65:
+    if ce_total >= CE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
-        run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
 
         # FORCE EXIT CE
         if ce_state["position"]:
@@ -636,7 +635,10 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             ce_state["pnl"] += pnl
+            combined_pnl += pnl
 
+
+            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="CE",
@@ -647,7 +649,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
                 pnl= ce_state["pnl"],
-                cum_pnl=pnl
+                cum_pnl=combined_pnl
                 )   
 
             ce_state["position"] = False
@@ -658,14 +660,16 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_total >= PE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
-        run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
         # FORCE EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             pe_state["pnl"] += pnl
+            combined_pnl += pnl
 
+
+            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="PE",
@@ -675,8 +679,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 lot=pe_state["lot"],
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
-                pnl= ce_state["pnl"],
-                cum_pnl=pnl
+                pnl= pe_state["pnl"],
+                cum_pnl=combined_pnl
                 )
 
             pe_state["position"] = False
@@ -700,7 +704,7 @@ def tick_exit_check(name, token, state, ltp):
         combined_pnl += pnl
 
         print("⚡ TICK EXIT", name, exit_price)
-        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
+        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, state["pnl"] , combined_pnl)))
 
         log_trade_event(
             event_type="EXIT",

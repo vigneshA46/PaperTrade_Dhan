@@ -604,7 +604,7 @@ def tick_exit_check(name, token, state, ltp):
         
 
         print("⚡ TICK EXIT", name, exit_price)
-        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
+        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, state["pnl"] , combined_pnl)))
 
         log_trade_event(
             event_type="EXIT",
@@ -644,12 +644,11 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 
     total = float(ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running)
-    combined_pnl = total
+    #combined_pnl = total
 
     if ce_state["moment"] >= CE_TARGET_POINTS and not ce_state["trading_disabled"]:
 
         print("🏁 CE 50 points hit")
-        run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
 
 
         # EXIT CE
@@ -664,6 +663,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
             ce_state["pnl"] += pnl
             combined_pnl += pnl
 
+
+            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="CE",
@@ -687,7 +688,6 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["moment"] >= PE_TARGET_POINTS and not pe_state["trading_disabled"]:
 
         print("🏁 PE 50 points hit")
-        run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
         # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
@@ -699,6 +699,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             pe_state["pnl"] += pnl
             combined_pnl += pnl
 
+            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="PE",

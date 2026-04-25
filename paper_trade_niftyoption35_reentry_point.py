@@ -660,10 +660,9 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
         return
         
-            
-            
 
     if pe_state["moment"] >= PE_TARGET_POINTS and not pe_state["trading_disabled"]:
+
 
         print("🏁 PE 50 points hit")
         run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
