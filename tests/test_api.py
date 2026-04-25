@@ -241,7 +241,7 @@ async def flattrade_callback(request: Request):
 
         if not request_code or not broker_id:
             raise HTTPException(status_code=400, detail="Missing request_code or brokerId")
-
+""" 
         conn = await get_db()
 
         # 🔍 Fetch broker
@@ -258,6 +258,12 @@ async def flattrade_callback(request: Request):
         api_secret = credentials.get("apiSecret")
 
         print(credentials)
+
+ """       
+
+        api_key = "f338915fa82342b982cc078336708f74"
+
+        api_secret = "2026.28c52c271e6c4235808f3042a0b2dc0bdc855d5594e6832b"
 
         if not api_key or not api_secret:
             raise HTTPException(status_code=400, detail="Invalid broker credentials")
