@@ -11,6 +11,8 @@ import httpx
 import hashlib
 import asyncpg
 import json
+from urllib.parse import parse_qs
+
 
 
 router = APIRouter()
@@ -266,10 +268,17 @@ async def flattrade_callback(request: Request):
                     }
                 )
 
-        data = response.json()
+        raw_text = response.text.strip()
+        if not raw_text:
+            raise HTTPException(status_code=400, detail="Empty response from FlatTrade")
+
+        parsed = parse_qs(raw_text)
+        data = {k: v[0] for k, v in parsed.items()}
+
+        print("PARSED:", data)
 
         print("STATUS:", response.status)
-        print("RAW RESPONSE:", response.text)
+        print("RAW RESPONSE:", repr(response.text))
 
 
         if data.get("status") != "Ok":
