@@ -235,6 +235,10 @@ async def flattrade_callback(request: Request):
         request_code = request.query_params.get("request_code")
         broker_id = request.query_params.get("state")
 
+        print("QUERY PARAMERERS")
+
+        print(dict(request.query_params))
+
         if not request_code or not broker_id:
             raise HTTPException(status_code=400, detail="Missing request_code or brokerId")
 
@@ -260,18 +264,25 @@ async def flattrade_callback(request: Request):
         raw = f"{api_key}{request_code}{api_secret}"
         hash_value = hashlib.sha256(raw.encode()).hexdigest()
 
+        print("RAW STRING:", raw)
+        print("HASH:", hash_value)
+
         # 🔁 Exchange token
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://authapi.flattrade.in/trade/apitoken",
-                json={
+                data={
                     "api_key": api_key,
                     "request_code": request_code,
                     "api_secret": hash_value
-                }
-            )
+                    }
+                )
 
         data = response.json()
+
+        print("STATUS:", response.status)
+        print("RAW RESPONSE:", response.text)
+
 
         if data.get("status") != "Ok":
             raise HTTPException(
