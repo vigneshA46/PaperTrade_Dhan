@@ -269,6 +269,8 @@ async def flattrade_callback(request: Request):
                 )
 
         raw_text = response.text.strip()
+
+        print(raw_text)
         if not raw_text:
             raise HTTPException(status_code=400, detail="Empty response from FlatTrade")
 
