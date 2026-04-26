@@ -6,7 +6,7 @@ from datetime import datetime, time as dtime
 from dotenv import load_dotenv
 import os
 from dhanhq import marketfeed
-from dhanhq import dhanhq
+from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from dispatcher import subscribe
@@ -57,8 +57,8 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 # LOGIN
 # =========================
 
-dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
-
+dhan_context = DhanContext(CLIENT_ID, ACCESS_TOKEN)
+dhan = dhanhq(dhan_context)
 builder = OneMinuteCandleBuilder()
 fno_df = load_fno_master()
 

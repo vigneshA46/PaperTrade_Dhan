@@ -5,7 +5,7 @@ from datetime import datetime, time as dtime
 from dotenv import load_dotenv
 import os
 from dhanhq import marketfeed
-from dhanhq import dhanhq
+from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
@@ -62,7 +62,8 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 # LOGIN
 # =========================
 
-dhan = dhanhq(client_id, access_token)
+dhan_context = DhanContext(client_id, access_token)
+dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
 strategy_id = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"

@@ -13,7 +13,7 @@ from find_security import load_fno_master, find_option_security
 from io import StringIO
 from queue import Queue
 import threading
-from dhanhq import dhanhq
+from dhanhq import DhanContext, dhanhq
 from signal_emitter import emit_signal
 import asyncio
 from find_instrument import FindInstrument
