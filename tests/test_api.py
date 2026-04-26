@@ -11,6 +11,8 @@ import httpx
 import hashlib
 import asyncpg
 import json
+from urllib.parse import parse_qs
+
 
 
 router = APIRouter()
@@ -234,24 +236,16 @@ async def flattrade_callback(request: Request):
     try:
         request_code = request.query_params.get("request_code")
         broker_id = request.query_params.get("state")
+        api_key = request.query_params.get("apiKey")
+        api_secret = request.query_params.get("apiSecret")
+
+        print("QUERY PARAMERERS")
+
+        print(dict(request.query_params))
 
         if not request_code or not broker_id:
             raise HTTPException(status_code=400, detail="Missing request_code or brokerId")
 
-        conn = await get_db()
-
-        # 🔍 Fetch broker
-        broker = await conn.fetchrow(
-            "SELECT * FROM broker_accounts WHERE id = $1",
-            broker_id
-        )
-
-        if not broker:
-            raise HTTPException(status_code=404, detail="Broker not found")
-
-        credentials = broker["credentials"] or {}
-        api_key = credentials.get("apiKey")
-        api_secret = credentials.get("apiSecret")
 
         if not api_key or not api_secret:
             raise HTTPException(status_code=400, detail="Invalid broker credentials")
@@ -260,18 +254,36 @@ async def flattrade_callback(request: Request):
         raw = f"{api_key}{request_code}{api_secret}"
         hash_value = hashlib.sha256(raw.encode()).hexdigest()
 
+        print("RAW STRING:", raw)
+        print("HASH:", hash_value)
+
         # 🔁 Exchange token
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://authapi.flattrade.in/trade/apitoken",
-                json={
+                data={
                     "api_key": api_key,
                     "request_code": request_code,
                     "api_secret": hash_value
-                }
-            )
+                    }
+                )
 
-        data = response.json()
+            print(response)
+
+        raw_text = response.text.strip()
+
+        print(raw_text)
+        if not raw_text:
+            raise HTTPException(status_code=400, detail="Empty response from FlatTrade")
+
+        parsed = parse_qs(raw_text)
+        data = {k: v[0] for k, v in parsed.items()}
+
+        print("PARSED:", data)
+
+        print("STATUS:", response.status)
+        print("RAW RESPONSE:", repr(response.text))
+
 
         if data.get("status") != "Ok":
             raise HTTPException(
