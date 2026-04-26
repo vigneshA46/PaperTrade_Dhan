@@ -506,19 +506,6 @@ def handle_leg(name, token, candle, state, ltp):
 
     timestamp = candle["timestamp"]
 
-    # =========================
-    # RE-ARM LOGIC
-    # =========================
-    if state["rearm_required"]:
-        if close < state["marked"]:
-            state["rearm_required"] = False
-
-            global combined_exit_active
-            combined_exit_active = False   # 🔥 UNLOCK next cycle
-
-            print(f"🔄 {name} REARMED")
-        else:
-            return
 
     # =========================
     # TIME EXIT (15:20)

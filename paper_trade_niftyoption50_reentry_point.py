@@ -375,7 +375,7 @@ def init_state():
 
 wait_for_start()
 
-print("\n🚀 NIFTY OPTION BUYING 50 STARTED\n")
+print("\n🚀 NIFTY OPTION BUYING 50 REENTRY POINT STARTED\n")
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
@@ -502,21 +502,7 @@ def handle_leg(name, token, candle, state, ltp):
            candle["low"] + candle["close"]) / 4
 
     timestamp = candle["timestamp"]
-
-    # =========================
-    # RE-ARM LOGIC
-    # =========================
-    if state["rearm_required"]:
-        if close < state["marked"]:
-            state["rearm_required"] = False
-
-            global combined_exit_active
-            combined_exit_active = False   # 🔥 UNLOCK next cycle
-
-            print(f"🔄 {name} REARMED")
-        else:
-            return
-
+    
     # =========================
     # TIME EXIT (15:20)
     # =========================
@@ -562,7 +548,7 @@ def handle_leg(name, token, candle, state, ltp):
     # =============================
     # ENTRY SIGNAL AND EXECUTION
     # =============================
-    if not state["position"]:
+    if not state["position"] and not state["rearm_required"]:
 
         if close > state["marked"] and avg > state["marked"] and avg < close:
 
@@ -594,6 +580,18 @@ def handle_leg(name, token, candle, state, ltp):
 
 def tick_exit_check(name, token, state, ltp):
     global combined_pnl
+
+    # =========================
+    # RE-ARM LOGIC
+    # =========================
+    if state["rearm_required"]:
+        if ltp < state["marked"]:
+            state["rearm_required"] = False
+
+            global combined_exit_active
+            combined_exit_active = False  
+
+            print(f"🔄 {name} REARMED")
 
     if not state["position"]:
         return

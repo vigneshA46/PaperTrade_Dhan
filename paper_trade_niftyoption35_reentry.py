@@ -42,7 +42,7 @@ SYMBOL = "NIFTY"
 
 load_dotenv()
 
-STRATEGY_NAME = "NIFTY_OPTION_BUYING_50_reentry"
+STRATEGY_NAME = "NIFTY_OPTION_BUYING_35_reentry"
 client_id = os.getenv("CLIENT_ID")
 access_token = get_access_token()
 
@@ -377,7 +377,7 @@ def init_state():
 
 wait_for_start()
 
-print("\n🚀 NIFTY OPTION BUYING 50 STARTED\n")
+print("\n🚀 NIFTY OPTION BUYING 35 REENTRY STARTED\n")
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
@@ -505,19 +505,6 @@ def handle_leg(name, token, candle, state, ltp):
 
     timestamp = candle["timestamp"]
 
-    # =========================
-    # RE-ARM LOGIC
-    # =========================
-    if state["rearm_required"]:
-        if close < state["marked"]:
-            state["rearm_required"] = False
-
-            global combined_exit_active
-            combined_exit_active = False   # 🔥 UNLOCK next cycle
-
-            print(f"🔄 {name} REARMED")
-        else:
-            return
 
     # =========================
     # TIME EXIT (15:20)
@@ -564,7 +551,7 @@ def handle_leg(name, token, candle, state, ltp):
     # =============================
     # ENTRY SIGNAL AND EXECUTION
     # =============================
-    if not state["position"]:
+    if not state["position"] and not state["rearm_required"]:
 
         if close > state["marked"] and avg > state["marked"] and avg < close:
 
@@ -691,6 +678,18 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 def tick_exit_check(name, token, state, ltp):
     global combined_pnl
+
+    # =========================
+    # RE-ARM LOGIC
+    # =========================
+    if state["rearm_required"]:
+        if ltp < state["marked"]:
+            state["rearm_required"] = False
+
+            global combined_exit_active
+            combined_exit_active = False  
+
+            print(f"🔄 {name} REARMED")
 
     if not state["position"]:
         return

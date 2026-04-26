@@ -507,20 +507,6 @@ def handle_leg(name, token, candle, state, ltp):
     timestamp = candle["timestamp"]
 
     # =========================
-    # RE-ARM LOGIC
-    # =========================
-    if state["rearm_required"]:
-        if close < state["marked"]:
-            state["rearm_required"] = False
-
-            global combined_exit_active
-            combined_exit_active = False   # 🔥 UNLOCK next cycle
-
-            print(f"🔄 {name} REARMED")
-        else:
-            return
-
-    # =========================
     # TIME EXIT (15:20)
     # =========================
     if now >= TRADE_END:
@@ -564,7 +550,7 @@ def handle_leg(name, token, candle, state, ltp):
     # =============================
     # ENTRY SIGNAL AND EXECUTION
     # =============================
-    if not state["position"]:
+    if not state["position"] and not state["rearm_required"]:
 
         if close > state["marked"] and avg > state["marked"] and avg < close:
 
@@ -598,6 +584,18 @@ def handle_leg(name, token, candle, state, ltp):
 
 def tick_exit_check(name, token, state, ltp):
     global combined_pnl
+
+    # =========================
+    # RE-ARM LOGIC
+    # =========================
+    if state["rearm_required"]:
+        if ltp < state["marked"]:
+            state["rearm_required"] = False
+
+            global combined_exit_active
+            combined_exit_active = False  
+
+            print(f"🔄 {name} REARMED")
 
     if not state["position"]:
         return
@@ -650,7 +648,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
 
-    if ce_state["position"] or ce_state["position"]:
+    if ce_state["position"] or pe_state["position"]:
         telemetry["status"] = 'RUNNING'
 
     ce_total = ce_state["pnl"] + ce_running

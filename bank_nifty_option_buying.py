@@ -490,22 +490,6 @@ def init_state():
     }
 
 
-def get_lot():
-    global current_lot
-    return current_lot
-
-
-def increment_lot():
-    global current_lot
-
-    if current_lot < MAX_LOT:
-        current_lot += 1
-
-
-def reset_lot():
-    global current_lot
-    current_lot = 1
-
 def on_message(msg):
 
     global combined_pnl , current_lot
@@ -562,8 +546,15 @@ def on_message(msg):
             state["tsl"] = entry_price + 40
             state["sl"] = entry_price + 25
             state["trailing_active"] = False
-            lot=get_lot()
-            state["lot"] = get_lot()
+
+            entry_lot = current_lot   
+
+            if current_lot < MAX_LOT:
+                current_lot += 1
+            else:
+                current_lot = 1
+
+            state["lot"] = entry_lot
 
             print("🟢 BUY (TICK +25)", leg_name, entry_price)
             run_async(emit_signal(build_payload(leg_name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl)))
@@ -572,16 +563,16 @@ def on_message(msg):
                 event_type="ENTRY",
                 leg_name=leg_name,
                 token=token,
-                symbol="NIFTY",
+                symbol="BANKNIFTY",
                 side="BUY",
-                lot=current_lot,
+                lot=state["lot"],
                 price=entry_price,
                 reason="TICK +25 ENTRY",
                 pnl=state["pnl"],
                 cum_pnl=combined_pnl
             )
 
-            increment_lot()
+            #increment_lot()
 
 
     # =========================
@@ -593,7 +584,7 @@ def on_message(msg):
 
             exit_price = ltp
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * current_lot
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
             current_moment = exit_price - state["entry_price"]
             state["moment"] = current_moment
@@ -610,7 +601,7 @@ def on_message(msg):
                 token=token,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=current_lot,
+                lot=state["lot"],
                 price=exit_price,
                 reason="TSL HIT (TICK)",
                 pnl=state["pnl"],
@@ -618,7 +609,7 @@ def on_message(msg):
             )
 
             state["position"] = False
-            reset_lot()
+            #reset_lot()
             state["rearm_required"] = True
 
             return
@@ -657,7 +648,7 @@ def on_message(msg):
 
             exit_price = ltp
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * current_lot
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
             state["pnl"] += pnl
             combined_pnl += pnl
@@ -674,7 +665,7 @@ def on_message(msg):
                 token=token,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=current_lot,
+                lot=state["lot"],
                 price=exit_price,
                 reason="TICK EXIT -25",
                 pnl=state["pnl"],
@@ -713,10 +704,10 @@ def on_message(msg):
     pe_running = 0
 
     if ce_state["position"]:
-        ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) * LOTSIZE * current_lot
+        ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
     if pe_state["position"]:
-        pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * current_lot
+        pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
     telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
     telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
@@ -743,7 +734,7 @@ def handle_leg(name, token, candle, state, ltp):
         if state["position"]:
             exit_price = ltp 
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * current_lot
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
 
             state["pnl"] += pnl
             combined_pnl += pnl
@@ -755,7 +746,7 @@ def handle_leg(name, token, candle, state, ltp):
                 token=token,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=current_lot,
+                lot=state["lot"],
                 price=exit_price,
                 reason="TIME EXIT",
                 pnl= state["pnl"],
@@ -796,8 +787,15 @@ def handle_leg(name, token, candle, state, ltp):
             state["tsl"] = entry_price + 40
             state["sl"] = entry_price + 25
             state["trailing_active"] = False
-            lot=get_lot()
-            state["lot"] = get_lot()
+
+            entry_lot = current_lot
+
+            if current_lot <= MAX_LOT:
+                current_lot += 1
+            else:
+                current_lot = 1
+
+            state["lot"] = entry_lot
 
             print("🟢 BUY", name, entry_price)
             run_async(emit_signal(build_payload(name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl)))
@@ -808,7 +806,7 @@ def handle_leg(name, token, candle, state, ltp):
                 token=token,
                 symbol="NIFTY",
                 side="BUY",
-                lot=current_lot,
+                lot=state["lot"],
                 price=entry_price,
                 reason="Trade opened",
                 pnl= state["pnl"],
@@ -827,10 +825,10 @@ def universal_exit_check(ce_ltp, pe_ltp):
     pe_running = 0
 
     if ce_state["position"]:
-        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * current_lot
+        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
     if pe_state["position"]:
-        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * current_lot
+        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
     total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
 
@@ -845,7 +843,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     
         if ce_state["position"]:
             exit_price = ce_ltp
-            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * current_lot
+            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
 
             current_moment = exit_price - ce_state["entry_price"]
             ce_state["moment"] =0.0
@@ -859,13 +857,13 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 token=CE_ID,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=current_lot,
+                lot=ce_state["lot"],
                 price=exit_price,
                 reason="COMBINED EXIT",
                 pnl=ce_state["pnl"],
                 cum_pnl=combined_pnl
             )
-            increment_lot()
+            #increment_lot()
             ce_state["trading_disabled"] = True
             pe_state["trading_disabled"] = True
             ce_state["rearm_required"] = True
@@ -884,7 +882,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         # EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
-            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * current_lot
+            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
 
             current_moment = exit_price - pe_state["entry_price"]
             pe_state["moment"] =0.0
@@ -898,14 +896,14 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 token=PE_ID,
                 symbol=SYMBOL,
                 side="SELL",
-                lot=current_lot,
+                lot=pe_state["lot"],
                 price=exit_price,
                 reason="COMBINED EXIT",
                 pnl=pe_state["pnl"],
                 cum_pnl=combined_pnl
             )
 
-            current_lot = 1
+            #current_lot = 1
             pe_state["trading_disabled"] = True
             ce_state["trading_disabled"] = True
             pe_state["rearm_required"] = True
