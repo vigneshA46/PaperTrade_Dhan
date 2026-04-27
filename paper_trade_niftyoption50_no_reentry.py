@@ -817,25 +817,25 @@ for t in TOKENS:
  
 
 
-instruments = [
-    (MarketFeed.NSE_FNO, CE_ID,MarketFeed.Quote),
-    (MarketFeed.NSE_FNO, PE_ID,MarketFeed.Quote)
-]
+# instruments = [
+#     (MarketFeed.NSE_FNO, CE_ID,MarketFeed.Quote),
+#     (MarketFeed.NSE_FNO, PE_ID,MarketFeed.Quote)
+# ]
 
-feed = MarketFeed(dhan_context, instruments, "v2")
+# feed = MarketFeed(dhan_context, instruments, "v2")
 
 
 
-while True:
-    try:
+# while True:
+#     try:
 
-        feed.run_forever()
-        msg = feed.get_data()
+#         feed.run_forever()
+#         msg = feed.get_data()
 
-        if msg:
-            if str(msg["security_id"]) in (CE_ID, PE_ID):
-                on_message(msg)
-    except Exception as e:
-        print("WS ERROR:", e)
-        feed.run_forever()
+#         if msg:
+#             if str(msg["security_id"]) in (CE_ID, PE_ID):
+#                 on_message(msg)
+#     except Exception as e:
+#         print("WS ERROR:", e)
+#         feed.run_forever()
 
