@@ -1,7 +1,7 @@
 from datetime import datetime, time as dtime
 import time
 import pytz
-from dhanhq import marketfeed
+from dhanhq import MarketFeed
 import threading
 from dotenv import load_dotenv
 import os
@@ -35,7 +35,10 @@ SYMBOL = 'BANKNIFTY'
 
 TRADE_END   = dtime(15, 20)
 
-dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
+access_token = get_access_token()
+dhan_context = DhanContext(CLIENT_ID, access_token)
+dhan = dhanhq(dhan_context)
+
 
 
 COMMON_ID = 'f3190e0b-c44f-4242-9eb4-474967faf1f2'
@@ -982,12 +985,12 @@ pe_state["marked"] = get_first_candle_mark(str(PE_ID))
 
 
 instruments = [
-    (marketfeed.NSE_FNO, str(CE_ID), marketfeed.Quote),
-    (marketfeed.NSE_FNO, str(PE_ID), marketfeed.Quote)
+    (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, str(PE_ID), MarketFeed.Quote)
     ]
 
 
-feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
+feed = MarketFeed(dhan_context, instruments, "v2")
 
 TOKENS = [CE_ID , PE_ID]
 

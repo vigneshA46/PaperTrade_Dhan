@@ -4,7 +4,7 @@ import requests
 from datetime import datetime, time as dtime
 from dotenv import load_dotenv
 import os
-from dhanhq import marketfeed
+from dhanhq import MarketFeed
 from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
@@ -43,7 +43,7 @@ SYMBOL = "NIFTY"
 load_dotenv()
 
 STRATEGY_NAME = "NIFTY_OPTION_BUYING_50 no reentry"
-CLIENT_ID = os.getenv("CLIENT_ID")
+
 
 CE_TARGET_POINTS = 50
 PE_TARGET_POINTS = 50
@@ -78,6 +78,7 @@ telemetry = {
 # =========================
 
 access_token = get_access_token()
+CLIENT_ID = os.getenv("CLIENT_ID")
 dhan_context = DhanContext(CLIENT_ID, access_token)
 dhan = dhanhq(dhan_context)
 
@@ -816,13 +817,12 @@ for t in TOKENS:
  
 
 
-""" 
 instruments = [
-    (marketfeed.NSE_FNO, CE_ID,marketfeed.Quote),
-    (marketfeed.NSE_FNO, PE_ID,marketfeed.Quote)
+    (MarketFeed.NSE_FNO, CE_ID,MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, PE_ID,MarketFeed.Quote)
 ]
 
-feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
+feed = MarketFeed(dhan_context, instruments, "v2")
 
 
 
@@ -839,4 +839,3 @@ while True:
         print("WS ERROR:", e)
         feed.run_forever()
 
- """

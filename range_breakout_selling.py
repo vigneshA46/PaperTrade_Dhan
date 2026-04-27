@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime, time as dtime
 from dotenv import load_dotenv
 import os
-from dhanhq import marketfeed
+from dhanhq import MarketFeed
 from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
@@ -726,12 +726,12 @@ ce_state = init_state();
 pe_state = init_state();
 
 instruments = [
-    (marketfeed.IDX, INDEX_TOKEN,marketfeed.Quote ),
-    (marketfeed.NSE_FNO, CE_ID,marketfeed.Quote),
-    (marketfeed.NSE_FNO, PE_ID,marketfeed.Quote)
+    (MarketFeed.IDX, INDEX_TOKEN,MarketFeed.Quote ),
+    (MarketFeed.NSE_FNO, CE_ID,MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, PE_ID,MarketFeed.Quote)
 ]
 
-feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, "v2")
+feed = MarketFeed(dhan_context, instruments, "v2")
 
 print("\n🚀 Range Breakout Paper Engine Running...\n")
     

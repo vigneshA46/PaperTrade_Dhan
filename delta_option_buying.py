@@ -5,7 +5,7 @@ from datetime import datetime, time as dtime
 from datetime import timedelta
 from dotenv import load_dotenv
 import os
-from dhanhq import marketfeed
+from dhanhq import MarketFeed
 from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
@@ -973,8 +973,8 @@ def on_message(msg):
 # =========================
 
 instruments = [
-    (marketfeed.NSE_FNO, CE_ID, marketfeed.Quote),
-    (marketfeed.NSE_FNO, PE_ID, marketfeed.Quote)
+    (MarketFeed.NSE_FNO, CE_ID, MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, PE_ID, MarketFeed.Quote)
 ]
 
 TOKENS = [

@@ -8,8 +8,8 @@ import paper_trade_niftyoption50_reentry_point as strategy5
 import delta_option_buying as strategy6
 import bank_nifty_option_buying as strategy7
 import paper_trade_niftyoption8_no_reentry as strategy8
-from dhanhq import marketfeed
-from dhanhq import dhanhq
+from dhanhq import MarketFeed
+from dhanhq import dhanhq,DhanContext
 from datetime import datetime
 from dhan_token import get_access_token
 from dotenv import load_dotenv
@@ -31,18 +31,20 @@ ALL_TOKENS.update(strategy7.TOKENS)
 
 
 access_token = get_access_token()
-CLIENT_ID = os.getenv("CLIENT_ID")
+client_id = os.getenv("CLIENT_ID")
+dhan_context = DhanContext(client_id, access_token)
+dhan = dhanhq(dhan_context)
 
 print("ALL TOKENS",ALL_TOKENS)
 
 instruments = [
-    (marketfeed.NSE_FNO, token, marketfeed.Quote)
+    (MarketFeed.NSE_FNO, token, MarketFeed.Quote)
     for (token) in ALL_TOKENS
 ]
 
-instruments.append((marketfeed.IDX, "13", marketfeed.Quote))
+instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
 
-feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
+feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
     token = str(msg["security_id"])
@@ -62,11 +64,11 @@ while True:
             ALL_TOKENS.update(strategy9.TOKENS)
 
             instruments = [
-                (marketfeed.NSE_FNO, token, marketfeed.Quote)
+                (MarketFeed.NSE_FNO, token, MarketFeed.Quote)
                 for (token) in ALL_TOKENS
             ]
 
-            feed = marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
+            feed = MarketFeed(dhan_context, instruments, "v2")
 
             feed.on_message = on_message
 
