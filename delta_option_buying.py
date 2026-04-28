@@ -810,7 +810,7 @@ def tick_tsl_exit(name, token, state, ltp):
         )
 
         state["position"] = False
-        #state["lot"] = 1
+        state["lot"] = 1
         state["rearm_required"] = True
 
 
