@@ -585,6 +585,8 @@ def handle_leg(name, token, candle, state, ltp):
     # =========================
     if now >= TRADE_END:
 
+        telemetry["status"]='CLOSED'
+
         if state["position"]:
             exit_price = ltp 
 
@@ -808,7 +810,7 @@ def tick_tsl_exit(name, token, state, ltp):
         )
 
         state["position"] = False
-        state["lot"] = 1
+        #state["lot"] = 1
         state["rearm_required"] = True
 
 
@@ -963,6 +965,9 @@ def on_message(msg):
 
     if pe_state["position"]:
         pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+
+    if ce_state["position"] or pe_state["position"]:
+        telemetry["status"] = 'RUNNING'
 
     telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
     telemetry["pe_pnl"] = pe_state["pnl"] + pe_running

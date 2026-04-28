@@ -63,7 +63,7 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 telemetry = {
     "strategy_id": COMMON_ID,
     "run_id": COMMON_ID,
-    "status": "RUNNING",
+    "status": "ACTIVE",
     "pnl": 0,
     "pnl_percentage": 0,
     "ce_ltp": 0,

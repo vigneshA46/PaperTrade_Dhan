@@ -56,23 +56,23 @@ while True:
 
         now = datetime.now()
 
-        if not rb_started and now.hour == 10 and now.minute >= 0:
-            import range_breakout_selling as strategy9
+        #if not rb_started and now.hour == 10 and now.minute >= 0:
+            #import range_breakout_selling as strategy9
 
-            print("Starting Range Breakout Strategy")
+            #print("Starting Range Breakout Strategy")
 
-            ALL_TOKENS.update(strategy9.TOKENS)
+            #ALL_TOKENS.update(strategy9.TOKENS)
 
-            instruments = [
-                (MarketFeed.NSE_FNO, token, MarketFeed.Quote)
-                for (token) in ALL_TOKENS
-            ]
+            #instruments = [
+                #(MarketFeed.NSE_FNO, token, MarketFeed.Quote)
+                #for (token) in ALL_TOKENS
+            #]
 
-            feed = MarketFeed(dhan_context, instruments, "v2")
+            #feed = MarketFeed(dhan_context, instruments, "v2")
 
-            feed.on_message = on_message
+            #feed.on_message = on_message
 
-            rb_started = True
+            #rb_started = True
 
         feed.run_forever()
         data = feed.get_data()
