@@ -866,6 +866,13 @@ def on_message(msg):
 
     if state and not state["position"] and not state["trading_disabled"]:
 
+
+        if state["rearm_required"]:
+            if ltp < state["marked"]:
+                state["rearm_required"] = False
+            else:
+                return
+
         if ltp >= state["marked"] + 8:
 
             entry_price = ltp
@@ -928,6 +935,7 @@ def on_message(msg):
             )
 
             state["position"] = False
+            state["rearm_required"]=True
             state["lot"] += 1
 
             return  
