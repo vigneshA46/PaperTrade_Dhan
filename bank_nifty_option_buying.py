@@ -620,6 +620,7 @@ def on_message(msg):
 
             state["position"] = False
             current_lot = 1
+            state["lot"] = 1
             #reset_lot()
             state["rearm_required"] = True
 
@@ -881,6 +882,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             )
             #increment_lot()
             current_lot = 1
+            ce_state["lot"] = 1
             ce_state["trading_disabled"] = True
             pe_state["trading_disabled"] = True
             ce_state["rearm_required"] = True
@@ -921,6 +923,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             )
 
             current_lot = 1
+            pe_state["lot"] = 1
             pe_state["trading_disabled"] = True
             ce_state["trading_disabled"] = True
             pe_state["rearm_required"] = True
