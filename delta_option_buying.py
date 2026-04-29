@@ -645,7 +645,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["sl"] = entry_price + 20
             state["trailing_active"] = False
 
-            print("🟢 BUY", name, entry_price)
+            print("🟢 BUY ", name, entry_price)
             run_async(emit_signal(build_payload(name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl)))
 
             log_trade_event(
@@ -953,12 +953,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("CE",token)
+            print("Delta CE",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("PE",token)
+            print("Delta PE",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
