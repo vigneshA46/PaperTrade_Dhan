@@ -538,7 +538,14 @@ def on_message(msg):
 
     if state and not state["position"] and not state["trading_disabled"]:
 
+        if state["rearm_required"]:
+            if ltp < state["marked"]:
+                state["rearm_required"] = False
+            else:
+                return
+
         if ltp >= state["marked"] + 25:
+
 
             entry_price = ltp
 
@@ -612,6 +619,7 @@ def on_message(msg):
             )
 
             state["position"] = False
+            current_lot = 1
             #reset_lot()
             state["rearm_required"] = True
 
@@ -674,7 +682,7 @@ def on_message(msg):
                 pnl=state["pnl"],
                 cum_pnl=combined_pnl
             )
-
+            state["rearm_required"] = True
             state["position"] = False   
             return  
 
@@ -872,6 +880,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 cum_pnl=combined_pnl
             )
             #increment_lot()
+            current_lot = 1
             ce_state["trading_disabled"] = True
             pe_state["trading_disabled"] = True
             ce_state["rearm_required"] = True
@@ -911,7 +920,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 cum_pnl=combined_pnl
             )
 
-            #current_lot = 1
+            current_lot = 1
             pe_state["trading_disabled"] = True
             ce_state["trading_disabled"] = True
             pe_state["rearm_required"] = True
