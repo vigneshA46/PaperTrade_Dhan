@@ -1,5 +1,5 @@
 from dhanhq import marketfeed
-from dhanhq import dhanhq
+from dhanhq import dhanhq,DhanContext
 from dotenv import load_dotenv
 import os
 from dhan_token import get_access_token
@@ -17,7 +17,8 @@ load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 access_token = get_access_token()
 
-dhan = dhanhq(client_id, access_token)
+dhan_context = DhanContext(client_id, access_token)
+dhan = dhanhq(dhan_context)
 
 # Structure for subscribing is (exchange_segment, "security_id", subscription_type)
 

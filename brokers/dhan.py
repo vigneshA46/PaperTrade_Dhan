@@ -1,7 +1,7 @@
 import requests
 import uuid
 from datetime import datetime
-from dhanhq import dhanhq
+from dhanhq import dhanhq,DhanContext
 
 
 class DhanAdapter:
@@ -46,7 +46,8 @@ class DhanAdapter:
         product_type: str = "INTRADAY",
         order_type: str = "MARKET",
     ):
-        dhan = dhanhq(self.client_id,self.access_token)
+        dhan_context = DhanContext(self.client_id, self.access_token)
+        dhan = dhanhq(dhan_context)
 
         data = dhan.place_order(
         security_id = security_id,   # Nifty PE (example)
