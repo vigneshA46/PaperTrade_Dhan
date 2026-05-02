@@ -1,9 +1,10 @@
-from dhanhq import marketfeed
 from dhanhq import dhanhq,DhanContext
+from dhanhq import MarketFeed
 from dotenv import load_dotenv
 import os
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
+
 
 builder = OneMinuteCandleBuilder()
 
@@ -20,9 +21,10 @@ access_token = get_access_token()
 dhan_context = DhanContext(client_id, access_token)
 dhan = dhanhq(dhan_context)
 
+
 # Structure for subscribing is (exchange_segment, "security_id", subscription_type)
 
-instruments = [(marketfeed.IDX, "13", marketfeed.Quote),   # Ticker - Ticker Data
+instruments = [(MarketFeed.IDX, "5024", MarketFeed.Quote),   # Ticker - Ticker Data
 ]
 
 version = "v2"          # Mention Version and set to latest version 'v2'
@@ -36,7 +38,7 @@ version = "v2"          # Mention Version and set to latest version 'v2'
 print(nsequote) """
 
 try:
-    data = marketfeed.DhanFeed(client_id, access_token, instruments, version)
+    data = MarketFeed(dhan_context, instruments, "v2")
     while True:
         data.run_forever()
         response = data.get_data()
@@ -56,4 +58,4 @@ except Exception as e:
     print(e)
 
 # Close Connection
-data.disconnect()
+    

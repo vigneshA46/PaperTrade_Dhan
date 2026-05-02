@@ -1,43 +1,32 @@
-import os
-import asyncio
+from dhanhq import MarketFeed, dhanhq, DhanContext
 import time
-from dhanhq import marketfeed
-from dhan_token import get_access_token
-from dotenv import load_dotenv
+import os
 from datetime import datetime
-
+from dotenv import load_dotenv
+from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
-
-asyncio.set_event_loop(asyncio.new_event_loop())
 
 load_dotenv()
 
 access_token = get_access_token()
 CLIENT_ID = os.getenv("CLIENT_ID")
 
-ALL_TOKENS = ["72312", "72317","72323","72279"]
-
-print("ALL TOKENS:", ALL_TOKENS)
-
-def create_feed(active_tokens):
-    instruments = [
-        (marketfeed.NSE_FNO, token, marketfeed.Quote)
-        for token in active_tokens
-    ]
-    #instruments.append((marketfeed.IDX, "13", marketfeed.Quote))
-
-    return marketfeed.DhanFeed(CLIENT_ID, access_token, instruments, "v2")
-
+ALL_TOKENS = ["72312", "72317", "72323", "72279"]
 
 active_tokens = [ALL_TOKENS[0]]
 current_index = 0
 
-feed = create_feed(active_tokens)
-
-last_switch_time = time.time()
-SWITCH_INTERVAL = 120
-
 candle_builders = {}
+
+def create_feed():
+    instruments = [
+        (MarketFeed.NSE_FNO, token, MarketFeed.Quote)
+        for token in active_tokens
+    ]
+    instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
+
+    dhan_context = DhanContext(CLIENT_ID, access_token)
+    return MarketFeed(dhan_context, instruments, "v2")
 
 
 def on_message(msg):
@@ -49,10 +38,8 @@ def on_message(msg):
     if token not in candle_builders:
         candle_builders[token] = OneMinuteCandleBuilder()
 
-    builder = candle_builders[token]
-
-    candle = builder.process_tick({
-        "type": "Quote Data",   
+    candle = candle_builders[token].process_tick({
+        "type": "Quote Data",
         "LTP": float(msg["LTP"]),
         "volume": msg.get("volume", 0),
         "LTT": msg["LTT"]
@@ -62,35 +49,38 @@ def on_message(msg):
         print(f"CANDLE CLOSED → {token} → {candle}")
 
 
+feed = create_feed()
 feed.on_message = on_message
 
+last_switch_time = time.time()
+SWITCH_INTERVAL = 120
 
+
+# ✅ Only ONE loop
 while True:
     try:
-        feed.run_forever()
-        data = feed.get_data()
+        feed.run_forever()   # ⚠️ blocks internally
 
+        data = feed.get_data()
         if data:
-                
             on_message(data)
 
+        # token switching logic
         if time.time() - last_switch_time >= SWITCH_INTERVAL:
-            current_index += 1
-
-            if current_index < len(ALL_TOKENS):
+            if current_index + 1 < len(ALL_TOKENS):
+                current_index += 1
                 new_token = ALL_TOKENS[current_index]
                 active_tokens.append(new_token)
 
-                print(f"Adding Token: {new_token}")
-                print("Active Tokens:", active_tokens)
+                print("Adding Token:", new_token)
 
-
-                feed = create_feed(active_tokens)
+                # ❗ recreate safely
+                feed.close()   # VERY IMPORTANT
+                feed = create_feed()
                 feed.on_message = on_message
-                feed.run_forever()
 
             last_switch_time = time.time()
 
     except Exception as e:
         print("WS ERROR:", e)
-        feed.run_forever()
+        time.sleep(2)
