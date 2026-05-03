@@ -4,8 +4,8 @@ import requests
 from datetime import datetime, time as dtime
 from dotenv import load_dotenv
 import os
-from dhanhq import marketfeed
-from dhanhq import dhanhq
+from dhanhq import MarketFeed
+from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
@@ -423,26 +423,9 @@ def on_message(msg):
     ltp = float(msg.get("LTP", 0))
 
     # =========================
-    # UPDATE PNL TICKWISE
-    # =========================
-    if token == str(CE_ID):
-        update_pnl_tickwise(ce_state, ltp)
-        telemetry["ce_ltp"] = ltp
-
-    elif token == str(PE_ID):
-        update_pnl_tickwise(pe_state, ltp)
-        telemetry["pe_ltp"] = ltp
-
-    # =========================
-    # KILL SWITCH CHECK (EVERY TICK 🔥)
-    # =========================
-    check_mtm_and_kill_switch()
-
-    # =========================
     # VWAP UPDATE
     # =========================
     _, vwap = vwap_manager.on_tick(msg)
-
 
     if vwap is None:
         return
@@ -460,109 +443,14 @@ def on_message(msg):
     # =========================
     # ON CANDLE CLOSE
     # =========================
-    if candle and sampler.should_emit(int(token)):
+    if candle:
 
         current_time = candle["datetime"].time()
 
         print("CANDLE", candle)
+        print("TOKEN", token)
         print("VWAP", vwap)
 
-        # ===== CE =====
-        if token == str(CE_ID):
-
-            signal = on_candle(ce_state, candle, current_time, vwap)
-
-            if signal == "BUY":
-                ce_state["position"] = True
-                ce_state["entry_price"] = ltp
-                ce_state["last_price"] = ltp
-
-                print(f"🟢 CE BUY | TOKEN: {token} | LTP: {ltp} | PNL: {ce_state['pnl']:.2f}")
-                
-                log_trade_event(
-                event_type="ENTRY",
-                leg_name="CE",
-                token=token,
-                symbol=SYMBOL,
-                side="BUY",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL ENTRY",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-            elif signal == "EXIT":
-                ce_state["position"] = False
-                ce_state["entry_price"] = None
-                ce_state["last_price"] = None
-
-                print(f"🔴 CE EXIT | TOKEN: {token} | LTP: {ltp} | TOTAL PNL: {ce_state['pnl']:.2f}")
-                
-                log_trade_event(
-                
-                event_type="EXIT",
-                leg_name="CE",
-                token=token,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL EXIT",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-
-        # ===== PE =====
-        elif token == str(PE_ID):
-
-            signal = on_candle(pe_state, candle, current_time, vwap)
-
-            if signal == "BUY":
-                pe_state["position"] = True
-                pe_state["entry_price"] = ltp
-                pe_state["last_price"] = ltp
-
-                print(f"🟢 PE BUY | TOKEN: {token} | LTP: {ltp} | PNL: {pe_state['pnl']:.2f}")
-
-                log_trade_event(
-                
-                event_type="ENTRY",
-                leg_name="PE",
-                token=token,
-                symbol=SYMBOL,
-                side="BUY",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL ENTRY",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-                
-
-            elif signal == "EXIT":
-                pe_state["position"] = False
-                pe_state["entry_price"] = None
-                pe_state["last_price"] = None
-
-                print(f"🔴 PE EXIT | TOKEN: {token} | LTP: {ltp} | TOTAL PNL: {pe_state['pnl']:.2f}")
-
-                log_trade_event(
-                
-                event_type="EXIT",
-                leg_name="PE",
-                token=token,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL EXIT",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-    
 
 
 

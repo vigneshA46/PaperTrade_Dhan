@@ -103,32 +103,28 @@ users = group_users_by_broker(deployments)
 
 print("FORMATTED USERS:", users)
 
-#changes to be done
-
-
-
-emit_signal({
-    "strategy_id": strategy_id,
-    "users":users,
-    "option": "CE",
-    "side": "BUY",
-    "quantity": 65,
-    "security_id": "63426",
-    "token": 63396,
-    "symbol": "NIFTY21APR2623500CE",
-    "exchange": "NFO",
-    "expiry":"2026-04-21",
-    "strike":23500,
-    "zebusymbol":"NIFTY",
-    "is_ce":True,
-    "is_fno":True,
-    "antsymbol":"NIFTY",
-    "pnl":0,
-    "cum_pnl":0,
-    "reason":"test order",
-    "leg_name":"CE",
-    "event_type":"ENTRY",
-    "price":234.45
-})
-
-loop.run_until_complete(asyncio.sleep(5))
+asyncio.run(
+    emit_signal({
+        "strategy_id": strategy_id,
+        "users": users,
+        "option": "CE",
+        "side": "BUY",
+        "quantity": 65,
+        "security_id": "63426",
+        "token": 63396,
+        "symbol": "NIFTY05MAY2624000CE",
+        "exchange": "NFO",
+        "expiry": "2026-05-05",
+        "strike": 24000,
+        "zebusymbol": "NIFTY",
+        "is_ce": True,
+        "is_fno": True,
+        "antsymbol": "NIFTY",
+        "pnl": 0,
+        "cum_pnl": 0,
+        "reason": "test order",
+        "leg_name": "CE",
+        "event_type": "ENTRY",
+        "price": 234.45
+    })
+)

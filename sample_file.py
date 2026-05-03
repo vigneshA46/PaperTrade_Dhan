@@ -49,6 +49,7 @@ def on_tick(msg):
         elif security_id == PE_ID:
             print(f"🔴 PE Tick VWAP: {vwap:.2f} | Price: {price}")
 
+
 # -------------------------------
 # 🔌 WebSocket Connection
 # -------------------------------
