@@ -112,7 +112,8 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 # =========================
 
 combined_exit_active = False
-dhan = dhanhq(client_id, access_token)
+dhan_context = DhanContext(client_id, access_token)
+dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
 
