@@ -13,6 +13,11 @@ import threading
 from dispatcher import subscribe
 from queue import Queue
 import pandas as pd
+from vwap_engine import VWAPManager, MinuteVWAPSampler
+
+
+
+vwap_manager = VWAPManager()
 
 
 
@@ -428,8 +433,8 @@ def on_message(msg):
     # =========================
     _, vwap = vwap_manager.on_tick(msg)
 
-    if vwap is None:
-        return
+    print(vwap)
+
 
     # =========================
     # CANDLE BUILD
@@ -493,6 +498,10 @@ pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
 CE_ID = ce_row["SECURITY_ID"]
 PE_ID = pe_row["SECURITY_ID"]
 
+builders = {
+    CE_ID: OneMinuteCandleBuilder(),
+    PE_ID: OneMinuteCandleBuilder()
+}
 
 # Log CE leg
 logtradeleg(
@@ -521,12 +530,12 @@ print(pe_row["SECURITY_ID"], "PE ID")
 
 
 instruments = [
-    (marketfeed.NSE_FNO, int(ce_row["SECURITY_ID"]), marketfeed.Quote),
-    (marketfeed.NSE_FNO, int(pe_row["SECURITY_ID"]), marketfeed.Quote)
+    (MarketFeed.NSE_FNO, str(ce_row["SECURITY_ID"]), MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, str(pe_row["SECURITY_ID"]), MarketFeed.Quote)
 ]
 
-
-feed = marketfeed.DhanFeed(client_id, access_token, instruments, "v2")
+print("instruments", instruments)
+feed = MarketFeed(dhan_context, instruments, "v2")
  
 while True:
     try:
@@ -534,7 +543,6 @@ while True:
         data = feed.get_data()
 
         if data:
-            print(data)
             on_message(data)
 
     except Exception as e:
