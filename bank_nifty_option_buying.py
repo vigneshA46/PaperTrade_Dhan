@@ -158,14 +158,7 @@ def group_users_by_broker(deployments):
 
     return grouped
 
-
-deployments = get_today_deployments()
-
-users = group_users_by_broker(deployments)
-
-print("FORMATTED USERS:", users)
-
-def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot):
+def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,users):
 
     if name == "CE":
         row = AngelCE
@@ -566,8 +559,15 @@ def on_message(msg):
 
             state["lot"] = entry_lot
 
+            
+            deployments = get_today_deployments()
+
+            users = group_users_by_broker(deployments)
+
+            print("FORMATTED USERS:", users)
+
             print("🟢 BUY (TICK +25)", leg_name, entry_price)
-            run_async(emit_signal(build_payload(leg_name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl,state["lot"])))
+            run_async(emit_signal(build_payload(leg_name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl,state["lot"],users)))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -602,8 +602,15 @@ def on_message(msg):
             state["pnl"] += pnl
             combined_pnl += pnl
 
+                        
+            deployments = get_today_deployments()
+
+            users = group_users_by_broker(deployments)
+
+            print("FORMATTED USERS:", users)
+
             print("🔴 TSL EXIT (TICK)", leg_name, exit_price)
-            run_async(emit_signal(build_payload(leg_name, "SELL", token, "exit", "EXIT", ltp, state["pnl"], combined_pnl,state["lot"])))
+            run_async(emit_signal(build_payload(leg_name, "SELL", token, "exit", "EXIT", ltp, state["pnl"], combined_pnl,state["lot"],users)))
 
             log_trade_event(
                 event_type="EXIT",
@@ -667,9 +674,16 @@ def on_message(msg):
             current_moment = exit_price - state["entry_price"]
             state["moment"] = current_moment
 
+            
+            deployments = get_today_deployments()
+
+            users = group_users_by_broker(deployments)
+
+            print("FORMATTED USERS:", users)
+
 
             print("🔴 EXIT (-25 TICK)", leg_name, exit_price)
-            run_async(emit_signal(build_payload(leg_name, "SELL", token, "exit", "EXIT", ltp, state["pnl"], combined_pnl,state["lot"])))
+            run_async(emit_signal(build_payload(leg_name, "SELL", token, "exit", "EXIT", ltp, state["pnl"], combined_pnl,state["lot"],users)))
 
             log_trade_event(
                 event_type="EXIT",
@@ -753,7 +767,14 @@ def handle_leg(name, token, candle, state, ltp):
             state["pnl"] += pnl
             combined_pnl += pnl
 
-            run_async(emit_signal(build_payload(name, "SELL", token, "exit", "EXIT", ltp, state["pnl"], combined_pnl,state["lot"])))
+            
+            deployments = get_today_deployments()
+
+            users = group_users_by_broker(deployments)
+
+            print("FORMATTED USERS:", users)
+
+            run_async(emit_signal(build_payload(name, "SELL", token, "exit", "EXIT", ltp, state["pnl"], combined_pnl,state["lot"],users)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name=name,
@@ -811,8 +832,15 @@ def handle_leg(name, token, candle, state, ltp):
 
             state["lot"] = entry_lot
 
+            
+            deployments = get_today_deployments()
+
+            users = group_users_by_broker(deployments)
+
+            print("FORMATTED USERS:", users)
+
             print("🟢 BUY", name, entry_price)
-            run_async(emit_signal(build_payload(name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl,state["lot"])))
+            run_async(emit_signal(build_payload(name, "BUY", token, "entry", "ENTRY", ltp, state["pnl"], combined_pnl,state["lot"],users)))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -853,7 +881,14 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if ce_state["moment"] >= CE_TARGET_POINTS and not ce_state["trading_disabled"]:
 
         print("🏁 CE 100 points hit")
-        run_async(emit_signal(build_payload("CE", "SELL", CE_ID, "exit", "EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"])))
+
+        
+        deployments = get_today_deployments()
+
+        users = group_users_by_broker(deployments)
+
+        print("FORMATTED USERS:", users)
+        run_async(emit_signal(build_payload("CE", "SELL", CE_ID, "exit", "EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"],users)))
 
 
         # EXIT CE
@@ -896,7 +931,13 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_state["moment"] >= PE_TARGET_POINTS and not pe_state["trading_disabled"]:
 
         print("🏁 PE 50 points hit")
-        run_async(emit_signal(build_payload("PE", "SELL", PE_ID, "exit", "EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"])))
+        
+        deployments = get_today_deployments()
+
+        users = group_users_by_broker(deployments)
+
+        print("FORMATTED USERS:", users)
+        run_async(emit_signal(build_payload("PE", "SELL", PE_ID, "exit", "EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"],users)))
         
         # EXIT PE
         if pe_state["position"]:
