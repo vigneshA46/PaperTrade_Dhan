@@ -134,7 +134,7 @@ users = group_users_by_broker(deployments)
 
 print("FORMATTED USERS:", users)
 
-def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl):
+def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot):
 
     if name == "CE":
         row = AngelCE
@@ -155,7 +155,7 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl):
         "users": users,
         "option": name,
         "side": side,
-        "quantity": LOTSIZE,
+        "quantity": lot * LOTSIZE,
         "security_id": token,
         "token": int(row["token"]),
         "event_type": event_type,
@@ -521,7 +521,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["pnl"] += pnl
             combined_pnl += pnl
 
-            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl)))
+            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl,state["lot"])))
             log_trade_event(
                 
                 event_type="EXIT",
@@ -563,7 +563,7 @@ def handle_leg(name, token, candle, state, ltp):
             state["position"] = True
 
             print("🟢 BUY", name, entry_price)
-            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl)))
+            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl,state["lot"])))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -610,7 +610,7 @@ def tick_exit_check(name, token, state, ltp):
         combined_pnl += pnl
 
         print("⚡ TICK EXIT", name, exit_price)
-        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl)))
+        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl,state["lot"])))
 
 
         log_trade_event(
@@ -666,7 +666,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if ce_total >= CE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
-        run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl)))
+        run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"])))
         
 
         # FORCE EXIT CE
@@ -698,7 +698,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
     if pe_total >= PE_TARGET_POINTS*65:
 
         print("🏁 TARGET HIT", total)
-        run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl)))
+        run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"])))
 
         # FORCE EXIT PE
         if pe_state["position"]:
