@@ -433,7 +433,6 @@ def on_message(msg):
     # =========================
     _, vwap = vwap_manager.on_tick(msg)
 
-    print(vwap)
 
 
     # =========================
@@ -442,6 +441,7 @@ def on_message(msg):
     builder = builders.get(token)
 
     if not builder:
+        print("no builder found")
         return
 
     candle = builder.process_tick(msg)
@@ -449,9 +449,7 @@ def on_message(msg):
     # =========================
     # ON CANDLE CLOSE
     # =========================
-    if candle:
-
-        current_time = candle["datetime"].time()
+    if candle and token=="74157":
 
         print("CANDLE", candle)
         print("TOKEN", token)
@@ -495,8 +493,8 @@ ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
 pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
 
 
-CE_ID = ce_row["SECURITY_ID"]
-PE_ID = pe_row["SECURITY_ID"]
+CE_ID = str(ce_row["SECURITY_ID"])
+PE_ID = str(pe_row["SECURITY_ID"])
 
 builders = {
     CE_ID: OneMinuteCandleBuilder(),

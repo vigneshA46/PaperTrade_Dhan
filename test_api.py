@@ -351,20 +351,25 @@ async def broadcast(data):
             except:
                 dead.append(c)
 
+        print("Broadcasting to", len(clients), "clients")
+
         for d in dead:
             clients.discard(d)
+
+
 
 def is_valid_token(token: str):
     return token.isdigit() and len(token) > 3
 
 
 def on_message(msg):
+
+    print("Dhan Tick:", msg)
     token = str(msg.get("security_id"))
 
     if msg.get("ltp") is None:
         return
 
-    publish(token, msg)
 
     try:
         asyncio.run_coroutine_threadsafe(broadcast(msg), loop)
@@ -377,24 +382,25 @@ def on_connect(msg=None):
 def on_close(msg=None):
     print("WS CLOSED")
 
+import threading
+import time
+
 def start_dhan_ws():
-    global feed
+    global feed, loop
 
     try:
         access_token = get_access_token()
         client_id = os.getenv("CLIENT_ID")
 
+        if not access_token or not client_id:
+            print("Missing Dhan credentials")
+            return
+
         dhan_context = DhanContext(client_id, access_token)
 
-        instruments = []
-        instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
+        instruments = [(MarketFeed.IDX, "13", MarketFeed.Quote)]
 
-        valid_tokens = []
-        for t in list(tokens):
-            if is_valid_token(t):
-                valid_tokens.append(t)
-            else:
-                print("Skipping invalid token:", t)
+        valid_tokens = [t for t in tokens if is_valid_token(t)]
 
         instruments.extend([
             (MarketFeed.NSE_FNO, t, MarketFeed.Quote)
@@ -405,16 +411,37 @@ def start_dhan_ws():
 
         feed = MarketFeed(dhan_context, instruments, "v2")
 
-        feed.on_message = on_message
-        feed.on_connect = on_connect
-        feed.on_close = on_close
+        # ✅ THREAD 1 → run websocket
+        def run_ws():
+            try:
+                feed.run_forever()
+            except Exception as e:
+                print("WS run_forever error:", e)
 
-        feed.run_forever()
+        # ✅ THREAD 2 → poll data
+        def poll_data():
+            while True:
+                try:
+                    data = feed.get_data()
+
+                    if data:
+                        print("Dhan Tick:", data)
+
+                        asyncio.run_coroutine_threadsafe(
+                            broadcast(data),
+                            loop
+                        )
+
+                    time.sleep(0.05)
+
+                except Exception as e:
+                    print("Polling error:", e)
+
+        threading.Thread(target=run_ws, daemon=True).start()
+        threading.Thread(target=poll_data, daemon=True).start()
 
     except Exception as e:
-        print("WS ERROR:", e)
-
-async def restart_ws():
+        print("WS ERROR:", e)async def restart_ws():
     global feed
 
     async with restart_lock:
@@ -431,6 +458,7 @@ async def restart_ws():
 
         print("Starting new WS...")
         loop.run_in_executor(None, start_dhan_ws)
+
 
 @router.post("/add-token")
 async def add_token(exchange: str, token: str):
@@ -458,7 +486,7 @@ async def clear_tokens():
 
     return {"status": "cleared"}
 
-@app.websocket("/ws")
+@router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await connect(ws)
 
@@ -468,7 +496,8 @@ async def websocket_endpoint(ws: WebSocket):
     except:
         await disconnect(ws)
 
-@app.on_event("startup")
+
+@router.on_event("startup")
 async def startup():
     global loop
     loop = asyncio.get_running_loop()
@@ -477,3 +506,4 @@ async def startup():
 
 
 app.include_router(router)
+ 

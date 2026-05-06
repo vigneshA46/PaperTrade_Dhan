@@ -526,7 +526,7 @@ def handle_leg(name, token, candle, state, ltp):
 
             print("FORMATTED USERS:", users)
 
-            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl,state["lot"],users)))
+            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, cum_pnl=combined_pnl,state["lot"],users)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name=name,
@@ -573,7 +573,7 @@ def handle_leg(name, token, candle, state, ltp):
             print("FORMATTED USERS:", users)
 
             print("🟢 BUY", name, entry_price)
-            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl,state["lot"],users)))
+            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"],  cum_pnl=combined_pnl,state["lot"],users)))
 
             log_trade_event(
                 event_type="ENTRY",
@@ -616,7 +616,7 @@ def tick_exit_check(name, token, state, ltp):
         print("FORMATTED USERS:", users)
 
         print("⚡ TICK EXIT", name, exit_price)
-        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, state["pnl"] , combined_pnl,state["lot"],users)))
+        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, state["pnl"] ,  cum_pnl=combined_pnl,state["lot"],users)))
 
         log_trade_event(
             event_type="EXIT",
@@ -682,7 +682,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             print("FORMATTED USERS:", users)
 
 
-            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"],users)))
+            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"],  cum_pnl=combined_pnl,ce_state["lot"],users)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="CE",
@@ -697,6 +697,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             )
             ce_state["lot"] = 1
             ce_state["trading_disabled"] = True
+            pe_state["trading_disabled"] = True
             ce_state["rearm_required"] = True
             ce_state["position"] = False
 
@@ -723,7 +724,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             print("FORMATTED USERS:", users)
 
-            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"],users)))
+            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"],  cum_pnl=combined_pnl,pe_state["lot"],users)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="PE",
@@ -739,6 +740,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             pe_state["lot"] = 1
             pe_state["trading_disabled"] = True
+            ce_state["trading_disabled"] = True
             pe_state["rearm_required"] = True
             pe_state["position"] = False
 
