@@ -821,12 +821,24 @@ def on_message(msg):
 # START WEBSOCKET
 # =========================
 
+SUBSCRIBE_TOKENS = []
 
-TOKENS = [
-  CE_ID , PE_ID
-]
+for i in range(-20, 21):
 
-MY_TOKENS = [CE_ID , PE_ID]
+    strike = ATM + (i * 50)
+
+    ce = find_option_security(fno_df, strike, "CE", today_date, "NIFTY")
+    pe = find_option_security(fno_df, strike, "PE", today_date, "NIFTY")
+
+    if ce is not None:
+        SUBSCRIBE_TOKENS.append(str(ce["SECURITY_ID"]))
+
+    if pe is not None:
+        SUBSCRIBE_TOKENS.append(str(pe["SECURITY_ID"]))
+
+TOKENS = list(set(SUBSCRIBE_TOKENS))
+
+MY_TOKENS = [CE_ID, PE_ID]
 
 def on_tick(token, msg):
 
