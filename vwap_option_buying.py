@@ -4,8 +4,8 @@ import requests
 from datetime import datetime, time as dtime
 from dotenv import load_dotenv
 import os
-from dhanhq import marketfeed
-from dhanhq import dhanhq
+from dhanhq import MarketFeed
+from dhanhq import DhanContext, dhanhq
 from dhan_token import get_access_token
 from candle_builder import OneMinuteCandleBuilder
 from find_security import load_fno_master, find_option_security
@@ -13,6 +13,9 @@ import threading
 from dispatcher import subscribe
 from queue import Queue
 import pandas as pd
+from vwap_engine import VWAPManager, MinuteVWAPSampler
+
+vwap_manager = VWAPManager()
 
 
 
@@ -112,7 +115,8 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 # =========================
 
 combined_exit_active = False
-dhan = dhanhq(client_id, access_token)
+dhan_context = DhanContext(client_id, access_token)
+dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
 
@@ -305,45 +309,6 @@ def fetch_intraday(security_id, exchange, instrument, from_dt, to_dt, oi=True):
 from datetime import time as dtime
 
 
-def on_candle(state, candle, current_time, vwap):
-    close = candle["close"]
-
-    if state["trading_disabled"]:
-        return None
-
-    if current_time < dtime(9, 16):
-        return None
-
-    # =========================
-    # 🔴 EXIT FIRST
-    # =========================
-    if state["position"] and close < vwap:
-        state["position"] = False
-        state["entry_price"] = None
-        state["entry_time"] = None
-        state["entry_signal"] = False
-        return "EXIT"
-
-    # =========================
-    # 🔵 EXECUTE ENTRY
-    # =========================
-    if state["entry_signal"] and not state["position"]:
-        state["position"] = True
-        state["entry_price"] = close
-        state["entry_time"] = current_time
-        state["entry_signal"] = False
-        return "BUY"
-
-    # =========================
-    # 🟡 GENERATE SIGNAL
-    # =========================
-    if not state["position"]:
-        if close > vwap:
-            state["entry_signal"] = True
-        else:
-            state["entry_signal"] = False
-
-    return None
 
 def check_mtm_and_kill_switch():
     global combined_exit_active , combined_pnl
@@ -358,7 +323,7 @@ def check_mtm_and_kill_switch():
     telemetry["pe_pnl"] = pe_state["pnl"]
     telemetry["pnl"] = combined_pnl
 
-    print(f"💰 MTM => CE: {ce_state['pnl']:.2f} | PE: {pe_state['pnl']:.2f} | TOTAL: {total_pnl:.2f}")
+
 
     if total_pnl >= 3000 or total_pnl <= -3000:
 
@@ -380,7 +345,7 @@ def check_mtm_and_kill_switch():
                 lot=1,
                 price=ltp,
                 reason="FORCE EXIT MTM",
-                pnl= state["pnl"],
+                pnl= ce_state["pnl"],
                 cum_pnl=combined_pnl
                 )
 
@@ -402,7 +367,7 @@ def check_mtm_and_kill_switch():
                 lot=1,
                 price=ltp,
                 reason="FORCE EXIT MTM",
-                pnl= state["pnl"],
+                pnl= pe_state["pnl"],
                 cum_pnl=combined_pnl
                 )
 
@@ -412,6 +377,158 @@ def check_mtm_and_kill_switch():
 
         ce_state["trading_disabled"] = True
         pe_state["trading_disabled"] = True
+
+
+
+def handle_leg(name, token, candle, state, ltp, vwap):
+
+    global combined_pnl
+
+    now = datetime.now(IST).time()
+
+    close = candle["close"]
+
+    timestamp = candle["timestamp"]
+
+    # =========================
+    # TIME EXIT (15:20)
+    # =========================
+    if now >= TRADE_END:
+
+        telemetry["status"] = "CLOSED"
+
+        if state["position"]:
+
+            exit_price = ltp
+
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+
+            state["pnl"] += pnl
+            combined_pnl += pnl
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+            print(
+                f"🔴 {name} TIME EXIT | TOKEN: {token} | "
+                f"LTP: {ltp} | PNL: {pnl:.2f}"
+            )
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        name,
+                        "SELL",
+                        token,
+                        "TIME EXIT",
+                        "EXIT",
+                        ltp,
+                        pnl,
+                        combined_pnl,
+                        state["lot"],
+                        users
+                    )
+                )
+            )
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name=name,
+                token=token,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=state["lot"],
+                price=exit_price,
+                reason="TIME EXIT",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            state["position"] = False
+            state["entry_price"] = None
+            state["last_price"] = None
+
+        state["trading_disabled"] = True
+        return
+
+    # =========================
+    # STOP TRADING
+    # =========================
+    if state["trading_disabled"]:
+        return
+
+    # =========================
+    # ENTRY SIGNAL GENERATION
+    # =========================
+    if not state["position"]:
+
+        # candle close above VWAP
+        if close > vwap:
+            state["entry_signal"] = True
+
+        else:
+            state["entry_signal"] = False
+
+    # =========================
+    # ENTRY EXECUTION
+    # =========================
+    if state["entry_signal"] and not state["position"]:
+
+        entry_price = ltp
+
+        state["entry_price"] = entry_price
+        state["entry_time"] = datetime.now(IST).isoformat()
+
+        state["position"] = True
+        state["entry_signal"] = False
+        state["last_price"] = ltp
+
+        deployments = get_today_deployments()
+        users = group_users_by_broker(deployments)
+
+        print(
+            f"🟢 {name} BUY | TOKEN: {token} | "
+            f"LTP: {ltp} | VWAP: {round(vwap,2)}"
+        )
+
+        run_async(
+            emit_signal(
+                build_payload(
+                    name,
+                    "BUY",
+                    token,
+                    "VWAP ENTRY",
+                    "ENTRY",
+                    ltp,
+                    state["pnl"],
+                    combined_pnl,
+                    state["lot"],
+                    users
+                )
+            )
+        )
+
+        log_trade_event(
+            event_type="ENTRY",
+            leg_name=name,
+            token=token,
+            symbol=SYMBOL,
+            side="BUY",
+            lot=state["lot"],
+            price=entry_price,
+            reason="VWAP ENTRY",
+            pnl=state["pnl"],
+            cum_pnl=combined_pnl
+        )
+
+        log_event(
+            f"{name} BUY",
+            token,
+            "ENTRY_EXECUTED",
+            entry_price,
+            "VWAP ENTRY"
+        )
+
 
 
 def on_message(msg):
@@ -433,16 +550,16 @@ def on_message(msg):
         update_pnl_tickwise(pe_state, ltp)
         telemetry["pe_ltp"] = ltp
 
-    # =========================
-    # KILL SWITCH CHECK (EVERY TICK 🔥)
-    # =========================
-    check_mtm_and_kill_switch()
 
     # =========================
     # VWAP UPDATE
     # =========================
     _, vwap = vwap_manager.on_tick(msg)
 
+    check_mtm_and_kill_switch()
+    # =========================
+    # KILL SWITCH CHECK (EVERY TICK 🔥)
+    # =========================
 
     if vwap is None:
         return
@@ -453,6 +570,7 @@ def on_message(msg):
     builder = builders.get(token)
 
     if not builder:
+        print("no builder found")
         return
 
     candle = builder.process_tick(msg)
@@ -460,109 +578,41 @@ def on_message(msg):
     # =========================
     # ON CANDLE CLOSE
     # =========================
-    if candle and sampler.should_emit(int(token)):
 
-        current_time = candle["datetime"].time()
+
+
+    if candle:
+
+        current_time = datetime.fromisoformat(
+                candle["timestamp"]
+            ).time()
 
         print("CANDLE", candle)
         print("VWAP", vwap)
 
-        # ===== CE =====
         if token == str(CE_ID):
 
-            signal = on_candle(ce_state, candle, current_time, vwap)
+            handle_leg(
+                "CE",
+                token,
+                candle,
+                ce_state,
+                ltp,
+                vwap
+            )
 
-            if signal == "BUY":
-                ce_state["position"] = True
-                ce_state["entry_price"] = ltp
-                ce_state["last_price"] = ltp
-
-                print(f"🟢 CE BUY | TOKEN: {token} | LTP: {ltp} | PNL: {ce_state['pnl']:.2f}")
-                
-                log_trade_event(
-                event_type="ENTRY",
-                leg_name="CE",
-                token=token,
-                symbol=SYMBOL,
-                side="BUY",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL ENTRY",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-            elif signal == "EXIT":
-                ce_state["position"] = False
-                ce_state["entry_price"] = None
-                ce_state["last_price"] = None
-
-                print(f"🔴 CE EXIT | TOKEN: {token} | LTP: {ltp} | TOTAL PNL: {ce_state['pnl']:.2f}")
-                
-                log_trade_event(
-                
-                event_type="EXIT",
-                leg_name="CE",
-                token=token,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL EXIT",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-
-        # ===== PE =====
         elif token == str(PE_ID):
 
-            signal = on_candle(pe_state, candle, current_time, vwap)
+            handle_leg(
+                "PE",
+                token,
+                candle,
+                pe_state,
+                ltp,
+                vwap
+            )
 
-            if signal == "BUY":
-                pe_state["position"] = True
-                pe_state["entry_price"] = ltp
-                pe_state["last_price"] = ltp
 
-                print(f"🟢 PE BUY | TOKEN: {token} | LTP: {ltp} | PNL: {pe_state['pnl']:.2f}")
-
-                log_trade_event(
-                
-                event_type="ENTRY",
-                leg_name="PE",
-                token=token,
-                symbol=SYMBOL,
-                side="BUY",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL ENTRY",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-                
-
-            elif signal == "EXIT":
-                pe_state["position"] = False
-                pe_state["entry_price"] = None
-                pe_state["last_price"] = None
-
-                print(f"🔴 PE EXIT | TOKEN: {token} | LTP: {ltp} | TOTAL PNL: {pe_state['pnl']:.2f}")
-
-                log_trade_event(
-                
-                event_type="EXIT",
-                leg_name="PE",
-                token=token,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=1,
-                price=ltp,
-                reason="SIGNAL EXIT",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-    
 
 
 
@@ -630,14 +680,22 @@ logtradeleg(
 print(ce_row["SECURITY_ID"], "CE ID")
 print(pe_row["SECURITY_ID"], "PE ID")
 
+builders = {
+    str(CE_ID): OneMinuteCandleBuilder(),
+    str(PE_ID): OneMinuteCandleBuilder()
+}
+
+ce_state = init_state()
+pe_state = init_state()
+
 
 instruments = [
-    (marketfeed.NSE_FNO, int(ce_row["SECURITY_ID"]), marketfeed.Quote),
-    (marketfeed.NSE_FNO, int(pe_row["SECURITY_ID"]), marketfeed.Quote)
+    (MarketFeed.NSE_FNO, str(ce_row["SECURITY_ID"]), MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, str(pe_row["SECURITY_ID"]), MarketFeed.Quote)
 ]
 
 
-feed = marketfeed.DhanFeed(client_id, access_token, instruments, "v2")
+feed = MarketFeed(dhan_context, instruments, "v2")
  
 while True:
     try:
@@ -645,7 +703,6 @@ while True:
         data = feed.get_data()
 
         if data:
-            print(data)
             on_message(data)
 
     except Exception as e:
