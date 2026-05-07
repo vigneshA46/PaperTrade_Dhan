@@ -687,7 +687,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         print("FORMATTED USERS:", users)
 
 
-        run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"],users)))
+        
         
 
         # FORCE EXIT CE
@@ -698,6 +698,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
             ce_state["pnl"] += pnl
             combined_pnl += pnl
             
+            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"],users)))
             log_trade_event(
                 event_type="EXIT",
                 leg_name="CE",
@@ -725,8 +726,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
         print("FORMATTED USERS:", users)
 
-        run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"],users)))
-
+        
         # FORCE EXIT PE
         if pe_state["position"]:
             exit_price = pe_ltp
@@ -734,6 +734,8 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             pe_state["pnl"] += pnl
             combined_pnl += pnl
+
+            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"],users)))
 
             log_trade_event(
                 event_type="EXIT",
