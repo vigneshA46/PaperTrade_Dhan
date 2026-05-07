@@ -138,7 +138,7 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
 
     day = expiry_date.strftime("%d")
     month = expiry_date.strftime("%b").upper()
-    year = expiry_date.strftime("%y")build
+    year = expiry_date.strftime("%y")
 
     symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
     expiry = expiry_date.strftime("%Y-%m-%d")
