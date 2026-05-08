@@ -66,7 +66,7 @@ def on_message(msg):
 
         rb_started = True
     
-
+feed.run_forever()
 while True:
     try:
 
@@ -84,7 +84,6 @@ while True:
 
             #rb_started = True
 
-        feed.run_forever()
         data = feed.get_data()
 
         if data:
