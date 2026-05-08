@@ -15,6 +15,7 @@ from datetime import datetime
 from dhan_token import get_access_token
 from dotenv import load_dotenv
 import os
+import pytz
 
 rb_started = False
 
@@ -54,8 +55,9 @@ def on_message(msg):
     token = str(msg["security_id"])
     publish(token, msg)
 
-    now = datetime.now()
-    print(now.hour, now.minute, rb_started)
+    ist = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(ist)
+    #print(now.hour, now.minute, rb_started)
 
     if not rb_started and now.hour == 10 and now.minute >= 1:
         print("STARTED CON")
