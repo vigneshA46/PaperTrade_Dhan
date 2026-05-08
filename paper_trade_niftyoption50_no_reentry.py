@@ -843,7 +843,7 @@ MY_TOKENS = [CE_ID, PE_ID]
 def on_tick(token, msg):
 
     if token not in MY_TOKENS:
-        print("token not in tokens")
+        #print("token not in tokens")
         return
     on_message(msg)
 
