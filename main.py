@@ -16,6 +16,7 @@ from dhan_token import get_access_token
 from dotenv import load_dotenv
 import os
 import pytz
+import threading
 
 rb_started = False
 
@@ -66,7 +67,7 @@ def on_message(msg):
 
         print("Starting Range Breakout Strategy")
 
-        strategy9.start_strategy()
+        threading.Thread(target=strategy9.start_strategy,daemon=True).start()
 
         rb_started = True
     
