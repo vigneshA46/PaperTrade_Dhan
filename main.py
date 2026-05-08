@@ -8,6 +8,7 @@ import paper_trade_niftyoption50_reentry_point as strategy5
 import delta_option_buying as strategy6
 import bank_nifty_option_buying as strategy7
 import paper_trade_niftyoption8_no_reentry as strategy8
+import range_breakout_selling as strategy9
 from dhanhq import MarketFeed
 from dhanhq import dhanhq,DhanContext
 from datetime import datetime
