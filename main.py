@@ -48,27 +48,43 @@ instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
 feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
-    token = str(msg["security_id"])
-    publish(token, msg)  # 🔥 send tick to correct strategies
-    
 
-feed.run_forever()
+    global rb_started
+
+    token = str(msg["security_id"])
+    publish(token, msg)
+
+    now = datetime.now()
+
+    if not rb_started and now.hour == 10 and now.minute >= 1:
+
+        import range_breakout_selling as strategy9
+
+        print("Starting Range Breakout Strategy")
+
+        strategy9.start_strategy()
+
+        rb_started = True
+    
 
 while True:
     try:
 
-        now = datetime.now()
 
-        if not rb_started and now.hour == 10 and now.minute >= 1:
+            #ALL_TOKENS.update(strategy9.TOKENS)
 
-            import range_breakout_selling as strategy9
+            #instruments = [
+                #(MarketFeed.NSE_FNO, token, MarketFeed.Quote)
+                #for (token) in ALL_TOKENS
+            #]
 
-            print("Starting Range Breakout Strategy")
+            #feed = MarketFeed(dhan_context, instruments, "v2")
 
-            strategy9.start_strategy()
+            #feed.on_message = on_message
 
-            rb_started = True
+            #rb_started = True
 
+        feed.run_forever()
         data = feed.get_data()
 
         if data:
