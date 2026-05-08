@@ -666,7 +666,7 @@ def start_strategy():
     ce_state = init_state()
     pe_state = init_state()
 
-    TOKENS = [CE_ID, PE_ID]
+    TOKENS = [CE_ID, PE_ID, INDEX_TOKEN]
     for t in TOKENS:
         subscribe(t, on_tick)
 
