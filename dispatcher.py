@@ -156,25 +156,11 @@ threading.Thread(target=refresh_holidays, daemon=True).start()
 threading.Thread(target=_auto_manager, daemon=True).start() """
 
 
-import threading
-
 subscriptions = {}
 
 def subscribe(token, handler):
-
-    handlers = subscriptions.setdefault(token, [])
-
-    if handler not in handlers:
-        handlers.append(handler)
+    subscriptions.setdefault(token, []).append(handler)
 
 def publish(token, data):
-
-    handlers = subscriptions.get(token, [])
-
-    for handler in handlers:
-
-        threading.Thread(
-            target=handler,
-            args=(token, data),
-            daemon=True
-        ).start()
+    for handler in subscriptions.get(token, []):
+        handler(token, data)
