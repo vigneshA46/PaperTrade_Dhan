@@ -324,8 +324,8 @@ def mark_range():
     print("TOP    :", top_line)
     print("BOTTOM :", bottom_line)
     print("ATM    :", ATM)
-    print("CE     :", ce_strike, CE_ID)
-    print("PE     :", pe_strike, PE_ID)
+    print(" Range CE     :", ce_strike, CE_ID)
+    print(" Range PE     :", pe_strike, PE_ID)
 
 
 
@@ -654,14 +654,17 @@ def on_option_tick(msg):
 
 load_fno_master()
 
-ce_state = init_state();
-pe_state = init_state();
+ce_state = init_state()
+pe_state = init_state()
 def start_strategy():
 
     global ce_state, pe_state, TOKENS
 
-    wait_for_start()
+    print("BEFORE MARK RANGE")
+
     mark_range()
+
+    print("AFTER MARK RANGE")
 
     ce_state = init_state()
     pe_state = init_state()
