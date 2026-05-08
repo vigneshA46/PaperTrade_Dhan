@@ -60,7 +60,7 @@ def on_message(msg):
     now = datetime.now(ist)
     #print(now.hour, now.minute, rb_started)
 
-    if not rb_started and now.hour == 10 and now.minute >= 1:
+    if not rb_started and now.hour >= 10 and now.minute >= 1:
         print("STARTED CON")
 
         import range_breakout_state as strategy9
