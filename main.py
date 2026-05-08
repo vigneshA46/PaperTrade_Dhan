@@ -52,12 +52,15 @@ def on_message(msg):
     publish(token, msg)  # 🔥 send tick to correct strategies
     
 
+feed.run_forever()
+
 while True:
     try:
 
         now = datetime.now()
 
         if not rb_started and now.hour == 10 and now.minute >= 1:
+
             import range_breakout_selling as strategy9
 
             print("Starting Range Breakout Strategy")
@@ -66,20 +69,6 @@ while True:
 
             rb_started = True
 
-            #ALL_TOKENS.update(strategy9.TOKENS)
-
-            #instruments = [
-                #(MarketFeed.NSE_FNO, token, MarketFeed.Quote)
-                #for (token) in ALL_TOKENS
-            #]
-
-            #feed = MarketFeed(dhan_context, instruments, "v2")
-
-            #feed.on_message = on_message
-
-            #rb_started = True
-
-        feed.run_forever()
         data = feed.get_data()
 
         if data:
