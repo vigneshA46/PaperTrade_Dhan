@@ -48,6 +48,7 @@ instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
 feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
+    print("ON MSG RUNNING")
 
     global rb_started
 
