@@ -48,7 +48,6 @@ instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
 feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
-    print("ON MSG RUNNING")
 
     global rb_started
 
@@ -56,8 +55,10 @@ def on_message(msg):
     publish(token, msg)
 
     now = datetime.now()
+    print(now.hour, now.minute, rb_started)
 
     if not rb_started and now.hour == 10 and now.minute >= 1:
+        print("STARTED CON")
 
         import range_breakout_selling as strategy9
 
