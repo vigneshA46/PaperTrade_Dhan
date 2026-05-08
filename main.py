@@ -57,10 +57,13 @@ while True:
 
         now = datetime.now()
 
-        #if not rb_started and now.hour == 10 and now.minute >= 0:
-            #import range_breakout_selling as strategy9
+        if not rb_started and now.hour == 10 and now.minute >= 1:
 
-            #print("Starting Range Breakout Strategy")
+            print("Starting Range Breakout Strategy")
+
+            strategy9.start_strategy()
+
+            rb_started = True
 
             #ALL_TOKENS.update(strategy9.TOKENS)
 

@@ -654,27 +654,25 @@ def on_option_tick(msg):
 
 load_fno_master()
 
-wait_for_start()
-mark_range()
-
 ce_state = init_state();
 pe_state = init_state();
+def start_strategy():
 
-instruments = [
-    (MarketFeed.IDX, INDEX_TOKEN,MarketFeed.Quote ),
-    (MarketFeed.NSE_FNO, CE_ID,MarketFeed.Quote),
-    (MarketFeed.NSE_FNO, PE_ID,MarketFeed.Quote)
-]
+    global ce_state, pe_state, TOKENS
 
-feed = MarketFeed(dhan_context, instruments, "v2")
+    wait_for_start()
+    mark_range()
 
-print("\n🚀 Range Breakout Paper Engine Running...\n")
-    
-threading.Thread(target=trade_log_worker, daemon=True).start()
+    ce_state = init_state()
+    pe_state = init_state()
 
-    
+    TOKENS = [CE_ID, PE_ID]
+    for t in TOKENS:
+        subscribe(t, on_tick)
 
-TOKENS = [CE_ID , PE_ID]
+    threading.Thread(target=trade_log_worker, daemon=True).start()
+
+    print("\n🚀 Range Breakout Paper Engine Running...\n")
 
 def on_tick(token, msg):
 
@@ -689,8 +687,8 @@ def on_tick(token, msg):
         elif str(msg["security_id"]) in (CE_ID, PE_ID):
             on_option_tick(msg)
 
-for t in TOKENS:
-    subscribe(t, on_tick)
+
+
 
 """
 while True:
