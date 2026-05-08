@@ -660,11 +660,7 @@ def start_strategy():
 
     global ce_state, pe_state, TOKENS
 
-    print("BEFORE MARK RANGE")
-
     mark_range()
-
-    print("AFTER MARK RANGE")
 
     ce_state = init_state()
     pe_state = init_state()
