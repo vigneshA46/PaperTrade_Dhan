@@ -39,6 +39,11 @@ This is an intraday NIFTY option buying strategy (MIS) where strike selection is
 Alongside the normal exit, the strategy uses a fixed cumulative target of 100 points and a dynamic trailing stop-loss (TSL). The initial TSL is placed at +30 points from the entry price, and trailing becomes active only when any candle touches this TSL level. Once activated, the stop-loss is set 10 points below the TSL. If price continues to move in favor and advances 10 points above the current TSL, both the TSL and SL are moved up by 10 points, progressively locking in profits. During the trailing phase, the trade exits only when a candle closes below the current SL. After a TSL-based exit or target hit, the next trade is always taken with 1 lot, and a fresh entry is allowed only after price first moves below the marked line and then again satisfies the original entry conditions, ensuring disciplined resets before re-entry.
 
 
+
+NIFTY VWAP EMA5 OPTION BUYING 
+
+This strategy is an intraday NIFTY option buying system that uses the NIFTY index for signal generation and fixed CE/PE option contracts for execution. At 09:19 AM, the CE and PE strikes whose premium is nearest to or above ₹250 are selected, and the same strikes are traded throughout the day. The strategy analyses 1-minute index candles using VWAP and EMA(5). From market open until 09:45 AM, the system waits for at least one EMA–VWAP crossover; however, if no crossover occurs before 09:45 AM, trading becomes enabled regardless. A bullish entry is triggered when an index candle closes above VWAP while EMA(5) remains above VWAP, resulting in a one-lot CE buy, whereas a bearish entry is triggered when an index candle closes below VWAP while EMA(5) remains below VWAP, resulting in a one-lot PE buy. Trade management is handled on the option premium chart itself, where each position uses a fixed stop loss of 25 points and a trailing profit mechanism starting at +35 points with trailing increments of 10 points. If a trade exits through the trailing mechanism, re-entry is allowed only after the index price touches VWAP again or a fresh EMA–VWAP crossover occurs, followed by a valid setup confirmation. Additionally, any active position is forcefully exited if the index price touches VWAP or if EMA crosses VWAP against the active trade direction. The system also enforces strict daily MTM risk management: all trades are immediately closed and trading is disabled for the remainder of the day once either a total profit of ₹5,000 or a total loss of ₹2,500 is reached.
+
 google sheet logging
 
 vwap option buying -- not done
@@ -56,6 +61,8 @@ mcx crude oil stratergy
 bank nifty option buying
 
 range breakout selling
+
+
 
 
 

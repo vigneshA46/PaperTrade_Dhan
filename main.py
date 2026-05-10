@@ -8,12 +8,15 @@ import paper_trade_niftyoption50_reentry_point as strategy5
 import delta_option_buying as strategy6
 import bank_nifty_option_buying as strategy7
 import paper_trade_niftyoption8_no_reentry as strategy8
+
 from dhanhq import MarketFeed
 from dhanhq import dhanhq,DhanContext
 from datetime import datetime
 from dhan_token import get_access_token
 from dotenv import load_dotenv
 import os
+import pytz
+import threading
 
 rb_started = False
 
@@ -47,19 +50,31 @@ instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
 feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
-    token = str(msg["security_id"])
-    publish(token, msg)  # 🔥 send tick to correct strategies
-    
 
+    global rb_started
+
+    token = str(msg["security_id"])
+    publish(token, msg)
+
+    ist = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(ist)
+    #print(now.hour, now.minute, rb_started)
+
+    if not rb_started and now.hour >= 10 and now.minute >= 1:
+        print("STARTED CON")
+
+        import range_breakout_state as strategy9
+
+        print("Starting Range Breakout Strategy")
+
+        threading.Thread(target=strategy9.start_strategy,daemon=True).start()
+
+        rb_started = True
+    
+feed.run_forever()
 while True:
     try:
 
-        now = datetime.now()
-
-        #if not rb_started and now.hour == 10 and now.minute >= 0:
-            #import range_breakout_selling as strategy9
-
-            #print("Starting Range Breakout Strategy")
 
             #ALL_TOKENS.update(strategy9.TOKENS)
 
@@ -74,7 +89,6 @@ while True:
 
             #rb_started = True
 
-        feed.run_forever()
         data = feed.get_data()
 
         if data:

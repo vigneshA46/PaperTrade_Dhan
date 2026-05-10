@@ -203,27 +203,29 @@ def get_first_candle_mark(security_id):
     return None
 
 
-def get_next_tuesday():
-    today = datetime.now(IST)
+def get_next_expiry():
+    """
+    Returns current/next NIFTY expiry date
+    directly from Dhan expiry list API
+    """
 
-    days_ahead = 1 - today.weekday()  # Tuesday = 1
+    expiries = dhan.expiry_list(
+        under_security_id=13,
+        under_exchange_segment="IDX_I"
+    )
 
-    if days_ahead < 0:
-        days_ahead += 7
+    expiry_list = expiries["data"]
 
-    # If today is Tuesday after market hours → next expiry
-    if days_ahead == 0 and today.hour >= 15:
-        days_ahead = 7
+    # first expiry is always nearest expiry
+    next_expiry = expiry_list["data"][0]
 
-    next_tuesday = today + timedelta(days=days_ahead)
-    return next_tuesday.strftime("%Y-%m-%d")
-
+    return next_expiry
 
 def get_high_delta_strikes(access_token, client_id):
     payload = {
         "UnderlyingScrip": 13,   # NIFTY
         "UnderlyingSeg": "IDX_I",
-        "Expiry": get_next_tuesday()
+        "Expiry": get_next_expiry()
     }
 
     headers = {
@@ -441,6 +443,9 @@ def init_state():
     }
 
 wait_for_start()
+
+print("next expiry")
+print(get_next_expiry())
 
 #ce_strike, pe_strike = get_high_delta_strikes(access_token, CLIENT_ID)
 

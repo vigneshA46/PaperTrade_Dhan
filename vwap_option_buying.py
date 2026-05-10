@@ -258,12 +258,6 @@ def update_pnl_tickwise(state, ltp):
 # =========================
 # STEP 4: ATM & ITM LOGIC
 # =========================
-
-def calculate_strikes(fut_price, step=50):
-    atm = round(fut_price / step) * step
-    return atm
-
-
 def wait_for_start():
     print("⏳ Waiting for market...")
     while True:
@@ -271,6 +265,10 @@ def wait_for_start():
             print("✅ Market Started")
             return
         time.sleep(1)
+
+def calculate_strikes(fut_price, step=50):
+    atm = round(fut_price / step) * step
+    return atm
 
 # =========================
 # STEP 3: HISTORICAL FETCH
@@ -343,7 +341,7 @@ def check_mtm_and_kill_switch():
                 symbol=SYMBOL,
                 side="SELL",
                 lot=1,
-                price=ltp,
+                price=telemetry.get('ce_ltp'),
                 reason="FORCE EXIT MTM",
                 pnl= ce_state["pnl"],
                 cum_pnl=combined_pnl
@@ -365,7 +363,7 @@ def check_mtm_and_kill_switch():
                 symbol=SYMBOL,
                 side="SELL",
                 lot=1,
-                price=ltp,
+                price=telemetry.get('pe_ltp'),
                 reason="FORCE EXIT MTM",
                 pnl= pe_state["pnl"],
                 cum_pnl=combined_pnl
@@ -406,30 +404,30 @@ def handle_leg(name, token, candle, state, ltp, vwap):
             state["pnl"] += pnl
             combined_pnl += pnl
 
-            deployments = get_today_deployments()
-            users = group_users_by_broker(deployments)
+            #deployments = get_today_deployments()
+            #users = group_users_by_broker(deployments)
 
             print(
                 f"🔴 {name} TIME EXIT | TOKEN: {token} | "
                 f"LTP: {ltp} | PNL: {pnl:.2f}"
             )
 
-            run_async(
-                emit_signal(
-                    build_payload(
-                        name,
-                        "SELL",
-                        token,
-                        "TIME EXIT",
-                        "EXIT",
-                        ltp,
-                        pnl,
-                        combined_pnl,
-                        state["lot"],
-                        users
-                    )
-                )
-            )
+            #run_async(
+                #emit_signal(
+                 #   build_payload(
+                  #      name,
+                   #     "SELL",
+                    #    token,
+                     #   "TIME EXIT",
+                      #  "EXIT",
+                       # ltp,
+                       # pnl,
+                        #combined_pnl,
+                        #state["lot"],
+                        #users
+                    #)
+                #)
+            #)
 
             log_trade_event(
                 event_type="EXIT",
@@ -483,30 +481,30 @@ def handle_leg(name, token, candle, state, ltp, vwap):
         state["entry_signal"] = False
         state["last_price"] = ltp
 
-        deployments = get_today_deployments()
-        users = group_users_by_broker(deployments)
+        #deployments = get_today_deployments()
+        #users = group_users_by_broker(deployments)
 
         print(
             f"🟢 {name} BUY | TOKEN: {token} | "
             f"LTP: {ltp} | VWAP: {round(vwap,2)}"
         )
 
-        run_async(
-            emit_signal(
-                build_payload(
-                    name,
-                    "BUY",
-                    token,
-                    "VWAP ENTRY",
-                    "ENTRY",
-                    ltp,
-                    state["pnl"],
-                    combined_pnl,
-                    state["lot"],
-                    users
-                )
-            )
-        )
+        #run_async(
+            #emit_signal(
+             #   build_payload(
+              #      name,
+               #     "BUY",
+                #    token,
+                 #   "VWAP ENTRY",
+                  #  "ENTRY",
+                   # ltp,
+                    #state["pnl"],
+                    #combined_pnl,
+                    #state["lot"],
+                    #users
+                #)
+            #)
+        #)
 
         log_trade_event(
             event_type="ENTRY",
@@ -521,17 +519,18 @@ def handle_leg(name, token, candle, state, ltp, vwap):
             cum_pnl=combined_pnl
         )
 
-        log_event(
-            f"{name} BUY",
-            token,
-            "ENTRY_EXECUTED",
-            entry_price,
-            "VWAP ENTRY"
-        )
+        #log_event(
+         #   f"{name} BUY",
+          #  token,
+           # "ENTRY_EXECUTED",
+            #entry_price,
+            #"VWAP ENTRY"
+        #)
 
 
 
 def on_message(msg):
+    global combined_pnl
 
     if msg.get("type") != "Quote Data":
         return
@@ -555,6 +554,66 @@ def on_message(msg):
     # VWAP UPDATE
     # =========================
     _, vwap = vwap_manager.on_tick(msg)
+
+    if token == str(CE_ID):
+
+        if ce_state["position"] and ltp < vwap:
+
+            exit_price = ltp
+
+            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+
+            ce_state["pnl"] += pnl
+            combined_pnl += pnl
+
+            print(f"🔴 CE VWAP TICK EXIT | {ltp} < {vwap} | PNL: {pnl:.2f}")
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name="CE",
+                token=CE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=ce_state["lot"],
+                price=ltp,
+                reason="VWAP TICK EXIT",
+                pnl=ce_state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            ce_state["position"] = False
+            ce_state["entry_price"] = None
+            ce_state["last_price"] = None
+
+    if token == str(PE_ID):
+
+        if pe_state["position"] and ltp < vwap:
+
+            exit_price = ltp
+
+            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+
+            pe_state["pnl"] += pnl
+            combined_pnl += pnl
+
+            print(f"🔴 PE VWAP TICK EXIT | {ltp} < {vwap} | PNL: {pnl:.2f}")
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name="PE",
+                token=PE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=pe_state["lot"],
+                price=ltp,
+                reason="VWAP TICK EXIT",
+                pnl=pe_state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            pe_state["position"] = False
+            pe_state["entry_price"] = None
+            pe_state["last_price"] = None
 
     check_mtm_and_kill_switch()
     # =========================
@@ -623,6 +682,7 @@ def on_message(msg):
 
 
 wait_for_start()
+threading.Thread(target=trade_log_worker, daemon=True).start()
 
 fut=get_nearest_nifty_fut(fno_df , today)
 
@@ -696,7 +756,7 @@ instruments = [
 
 
 feed = MarketFeed(dhan_context, instruments, "v2")
-
+ 
 while True:
     try:
         feed.run_forever()
