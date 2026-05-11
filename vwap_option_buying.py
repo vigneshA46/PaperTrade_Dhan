@@ -676,18 +676,20 @@ def on_message(msg):
 
 
 #======================
-#==main================
+#    MAIN
 #======================
-
 
 
 wait_for_start()
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
+
 fut=get_nearest_nifty_fut(fno_df , today)
+
 
 from_dt = f"{today} 09:15:00"
 to_dt = f"{today} 09:17:00"
+
 
 fut_df = fetch_intraday(
         fut["SECURITY_ID"],
@@ -697,8 +699,10 @@ fut_df = fetch_intraday(
         to_dt
     )
 
+
 ref_price = fut_df.iloc[0]["close"]
 print("FUT price",ref_price)
+
 
 atm = calculate_strikes(ref_price)
 print("ATM",atm)
@@ -706,6 +710,7 @@ ce_strike = atm - 200
 pe_strike = atm + 200
 print(ce_strike ,"CE strike")
 print(pe_strike , "PE strike")
+
 
 ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
 pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
@@ -725,6 +730,7 @@ logtradeleg(
     CE_ID
 )
 
+
 # Log PE leg
 logtradeleg(
     COMMON_ID,
@@ -736,14 +742,15 @@ logtradeleg(
 )
 
 
-
 print(ce_row["SECURITY_ID"], "CE ID")
 print(pe_row["SECURITY_ID"], "PE ID")
+
 
 builders = {
     str(CE_ID): OneMinuteCandleBuilder(),
     str(PE_ID): OneMinuteCandleBuilder()
 }
+
 
 ce_state = init_state()
 pe_state = init_state()

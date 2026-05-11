@@ -273,6 +273,7 @@ def mark_range():
 
     open_915 = data["open"][0]
     close_930 = data["close"][-1]
+    
 
     print("9:15 Open:", open_915)
     print("9:30 Close:", close_930)
@@ -390,7 +391,7 @@ def mark_range():
 def on_tick_index(msg):
 
     candle = idx_builder.process_tick(msg)
-    ltp = msg["LTP"]
+    ltp = float(msg["LTP"])
 
 
     # =========================================================
@@ -416,7 +417,7 @@ def on_tick_index(msg):
     # =========================================================
 
     # PE rearm → price back below top_line
-    if pe_state["rearm_required"] and ltp > botom_line:
+    if pe_state["rearm_required"] and ltp > bottom_line:
         print("🔁 PE REARMED")
         pe_state["rearm_required"] = False
 
@@ -521,10 +522,10 @@ def on_option_tick(msg):
     # =========================
     # SELECT STATE
     # =========================
-    if token == CE_ID:
+    if token == str(CE_ID):
         state = ce_state
         leg_name = "CE"
-    elif token == PE_ID:
+    elif token == str(PE_ID):
         state = pe_state
         leg_name = "PE"
     else:
@@ -575,6 +576,11 @@ def on_option_tick(msg):
     # 🔴 POSITION MANAGEMENT
     # =========================
     if state["position"]:
+        
+
+        state["entry_price"] = float(state["entry_price"])
+        state["tsl"] = float(state["tsl"])
+        state["sl"] = float(state["sl"])
 
 
         if now >= TRADE_END:
@@ -723,6 +729,16 @@ threading.Thread(target=trade_log_worker, daemon=True).start()
 
 print("\n🚀 Range Breakout Paper Engine Running...\n")
 
+instruments = [
+    (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, str(PE_ID), MarketFeed.Quote),
+    (MarketFeed.IDX, str(INDEX_TOKEN), MarketFeed.Quote),
+
+]
+
+
+feed = MarketFeed(dhan_context, instruments, "v2")
+
 
 while True:
     try:
@@ -735,7 +751,8 @@ while True:
             if str(msg["security_id"]) == INDEX_TOKEN:
                 on_tick_index(msg)
 
-            elif str(msg["security_id"]) in (CE_ID, PE_ID):
+            elif str(msg["security_id"]) in (str(CE_ID), str(PE_ID)):
+                
                 on_option_tick(msg)
     except Exception as e:
         print("WS ERROR:", e)
