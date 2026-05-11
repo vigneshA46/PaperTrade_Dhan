@@ -713,7 +713,7 @@ def on_option_tick(msg):
 # MAIN
 # =========================
 
-
+wait_for_start()
 
 load_fno_master()
 
