@@ -353,6 +353,25 @@ t = threading.Thread(target=telemetry_broadcaster, daemon=True)
 t.start()
 
 
+def get_next_expiry():
+    """
+    Returns current/next NIFTY expiry date
+    directly from Dhan expiry list API
+    """
+
+    expiries = dhan.expiry_list(
+        under_security_id=13,
+        under_exchange_segment="IDX_I"
+    )
+
+    expiry_list = expiries["data"]
+
+    # first expiry is always nearest expiry
+    next_expiry = expiry_list["data"][0]
+
+    return next_expiry
+
+
 
 def init_state():
     return {
@@ -429,19 +448,77 @@ else:
 # OPTION SELECTION
 # =========================
 
-today = datetime.now().date()
+
+atm = ATM
+
+oc = dhan.option_chain(
+    under_security_id=13,
+    under_exchange_segment="IDX_I",
+    expiry=get_next_expiry()   # change expiry dynamically
+)
+
+
+option_data = oc["data"]["data"]["oc"]
+
+target = 210
+
+best_ce = None
+best_pe = None
+
+best_ce_ltp = float("inf")
+best_pe_ltp = float("inf")
+
+
+for strike, strike_data in option_data.items():
+
+    strike = float(strike)
+
+    # ================= CE =================
+    # ONLY ATM OR ITM CE
+    if strike <= atm and "ce" in strike_data:
+
+        ce_ltp = strike_data["ce"]["last_price"]
+
+        if ce_ltp >= target and ce_ltp < best_ce_ltp:
+
+            best_ce_ltp = ce_ltp
+
+            best_ce = {
+                "strike": strike,
+                "ltp": ce_ltp,
+                "security_id": strike_data["ce"]["security_id"]
+                }
+
+    # ================= PE =================
+    # ONLY ATM OR ITM PE
+    if strike >= atm and "pe" in strike_data:
+
+        pe_ltp = strike_data["pe"]["last_price"]
+
+        if pe_ltp >= target and pe_ltp < best_pe_ltp:
+
+            best_pe_ltp = pe_ltp
+
+            best_pe = {
+                "strike": strike,
+                "ltp": pe_ltp,
+                "security_id": strike_data["pe"]["security_id"]
+            }    # FINAL VALUES
+
+ce_strike = best_ce["strike"]
+CE_ID = best_ce["security_id"]
+
+pe_strike = best_pe["strike"]
+PE_ID = best_pe["security_id"]
+
+
 finder=FindInstrument()
 
-ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
-pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
-
-CE_ID = str(ce_row["SECURITY_ID"])
-PE_ID = str(pe_row["SECURITY_ID"])
-
-AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
+AngelCE = finder.get_option("NIFTY" , int(ce_strike) , "CE")
+AngelPE = finder.get_option("NIFTY" , int(ce_strike) , "PE")
 
 print("angel tokens" , AngelCE , AngelPE)
+
 
 print("📌 CE:", CE_ID)
 print("📌 PE:", PE_ID)
@@ -455,8 +532,8 @@ builders = {
 logtradeleg(
     COMMON_ID,
     "CE",
-    f"NIFTY CE {ATM}",
-    ATM,
+    f"NIFTY CE {ce_strike}",
+    str(ce_strike),
     str(today),
     CE_ID
 )
@@ -465,12 +542,11 @@ logtradeleg(
 logtradeleg(
     COMMON_ID,
     "PE",
-    f"NIFTY PE {ATM}",
-    ATM,
+    f"NIFTY PE {pe_strike}",
+    str(pe_strike),
     str(today),
     PE_ID
 )
-
 
 
 # =========================
@@ -760,7 +836,8 @@ def tick_exit_check(name, token, state, ltp):
         )
 
         state["position"] = False
-        state["lot"] += 1
+        if state["lot"] < 15:
+            state["lot"] += 1
 
 
 

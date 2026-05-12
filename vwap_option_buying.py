@@ -455,6 +455,39 @@ def handle_leg(name, token, candle, state, ltp, vwap):
     if state["trading_disabled"]:
         return
 
+
+    if state["position"]:
+
+        # candle close above VWAP
+        if close < vwap:
+            exit_price = ltp
+
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+
+            state["pnl"] += pnl
+            combined_pnl += pnl
+
+            print(f"🔴 CE VWAP TICK EXIT | {ltp} < {vwap} | PNL: {pnl:.2f}")
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name="CE",
+                token=CE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=state["lot"],
+                price=ltp,
+                reason="VWAP TICK EXIT",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            state["position"] = False
+            state["entry_price"] = None
+            state["last_price"] = None
+
+
+
     # =========================
     # ENTRY SIGNAL GENERATION
     # =========================
@@ -519,15 +552,6 @@ def handle_leg(name, token, candle, state, ltp, vwap):
             cum_pnl=combined_pnl
         )
 
-        #log_event(
-         #   f"{name} BUY",
-          #  token,
-           # "ENTRY_EXECUTED",
-            #entry_price,
-            #"VWAP ENTRY"
-        #)
-
-
 
 def on_message(msg):
     global combined_pnl
@@ -557,7 +581,7 @@ def on_message(msg):
 
     if token == str(CE_ID):
 
-        if ce_state["position"] and ltp < vwap:
+        if ce_state["position"] and ltp < vwap - 8:
 
             exit_price = ltp
 
@@ -587,7 +611,7 @@ def on_message(msg):
 
     if token == str(PE_ID):
 
-        if pe_state["position"] and ltp < vwap:
+        if pe_state["position"] and ltp < vwap - 8:
 
             exit_price = ltp
 

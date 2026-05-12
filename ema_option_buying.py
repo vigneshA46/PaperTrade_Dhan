@@ -14,12 +14,16 @@ from find_security import load_fno_master, find_option_security
 from queue import Queue
 import threading
 from vwap_engine import VWAPManager
-from ema_engine import EMA5
+from ema5_indicator import EMA5
 
 vwap_manager = VWAPManager()
 ema5 = EMA5()
 
 COMMON_ID = "d302ce81-0247-405e-ba5c-60cebe7987bc"
+
+TRADE_START = dtime(9, 19)
+TRADE_END   = dtime(15, 20)
+
 
 cross_happened = False
 current_ema = None
@@ -33,6 +37,7 @@ last_relation = None
 load_dotenv()
 
 IST = pytz.timezone("Asia/Kolkata")
+today = datetime.now(IST).strftime("%Y-%m-%d")
 
 access_token = get_access_token()
 client_id = os.getenv("CLIENT_ID")
@@ -49,7 +54,7 @@ fno_df = load_fno_master()
 INDEX_TOKEN = "13"
 CE_ID = None
 PE_ID = None
-
+LOTSIZE = 65
 
 telemetry = {
     "strategy_id": COMMON_ID,
@@ -254,8 +259,12 @@ def on_tick_index(msg):
     # =========================
 
     candle = idx_builder.process_tick(msg)
+    print(msg)
+    print("vwap" , current_vwap)
+
 
     if candle:
+        print(candle)
         on_index_candle(
             msg["security_id"],
             datetime.now(IST),
@@ -294,6 +303,8 @@ def find_ce_pe_strikes():
     # =========================
     # OPTION CHAIN
     # =========================
+
+    global CE_ID , PE_ID
 
     oc = dhan.option_chain(
         under_security_id=13,
@@ -351,10 +362,10 @@ def find_ce_pe_strikes():
     # FINAL VALUES
 
     ce_strike = best_ce["strike"]
-    CE_ID = best_ce["security_id"]
+    CE_ID = str(best_ce["security_id"])
 
     pe_strike = best_pe["strike"]
-    PE_ID = best_pe["security_id"]
+    PE_ID = str(best_pe["security_id"])
 
     print(f"Selected CE Strike: {ce_strike}")
     print(f"CE LTP: {best_ce['ltp']}")
@@ -400,19 +411,25 @@ def on_index_candle(token, timestamp, candle):
 
     now = timestamp.time()
 
+
     if now < TRADE_START or now > TRADE_END:
+        print("out of time")
         return
 
     # =========================
     # EMA UPDATE
     # =========================
 
+
+
     current_ema = ema5.update(candle)
 
     if current_ema is None:
+        print("no EMA")
         return
 
     if current_vwap is None:
+        print("no vwap")
         return
 
     close = candle["close"]
@@ -552,14 +569,6 @@ def on_index_candle(token, timestamp, candle):
         pe_state["enter_now"] = True
 
 
-threading.Thread(target=trade_log_worker, daemon=True).start()
-
-load_fno_master()
-
-
-ce_state = init_state()
-pe_state = init_state()
-
 
 def on_option_tick(msg):
 
@@ -570,6 +579,7 @@ def on_option_tick(msg):
     if msg["type"] != "Quote Data":
         return
 
+
     now = datetime.now(IST).time()
 
     token = str(msg["security_id"])
@@ -579,12 +589,12 @@ def on_option_tick(msg):
     # SELECT LEG
     # =====================================================
 
-    if token == CE_ID:
+    if token == str(CE_ID):
 
         state = ce_state
         leg_name = "CE"
 
-    elif token == PE_ID:
+    elif token == str(PE_ID):
 
         state = pe_state
         leg_name = "PE"
@@ -622,7 +632,7 @@ def on_option_tick(msg):
             pe_state["force_exit"] = True
             pe_state["exit_reason"] = "DAY_TARGET"
 
-    if total_pnl <= -2500:
+    if total_pnl <= -3000:
 
         print("🛑 DAY STOPLOSS HIT")
 
@@ -844,6 +854,30 @@ def on_option_tick(msg):
         )
 
 
+threading.Thread(target=trade_log_worker, daemon=True).start()
+
+load_fno_master()
+
+
+find_ce_pe_strikes()
+
+ce_state = init_state()
+pe_state = init_state()
+
+
+
+
+
+instruments = [
+    (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, str(PE_ID), MarketFeed.Quote),
+    (MarketFeed.IDX, str(INDEX_TOKEN), MarketFeed.Quote)
+]
+
+print("instruments" , instruments)
+
+feed = MarketFeed(dhan_context, instruments, "v2")
+
 
 while True:
     try:
@@ -856,7 +890,7 @@ while True:
             if str(msg["security_id"]) == INDEX_TOKEN:
                 on_tick_index(msg)
 
-            elif str(msg["security_id"]) in (CE_ID, PE_ID):
+            elif str(msg["security_id"]) in (str(CE_ID),str(PE_ID)):
                 on_option_tick(msg)
     except Exception as e:
         print("WS ERROR:", e)

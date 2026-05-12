@@ -256,6 +256,7 @@ def wait_for_start():
 def calculate_atm(price, step=50):
     return int(round(price / step) * step)
 
+
 def mark_range():
     global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today
 
@@ -265,11 +266,12 @@ def mark_range():
         exchange_segment="IDX_I",
         instrument_type="INDEX",
         from_date=f"{today} 9:14:00",
-        to_date=f"{today} 9:31:00",
+        to_date=f"{today} 9:30:00",
         interval=1
     )
 
     data = idx["data"]
+    print(data)
 
     open_915 = data["open"][0]
     close_930 = data["close"][-1]
@@ -286,6 +288,9 @@ def mark_range():
     print("TOP    :", top_line)
     print("BOTTOM :", bottom_line)
 
+    atm = float(bottom_line)
+    print("ATM", atm)
+
     # =========================
     # OPTION CHAIN
     # =========================
@@ -299,7 +304,7 @@ def mark_range():
 
     option_data = oc["data"]["data"]["oc"]
 
-    target = 250
+    target = 210
 
     best_ce = None
     best_pe = None
@@ -307,16 +312,17 @@ def mark_range():
     best_ce_ltp = float("inf")
     best_pe_ltp = float("inf")
 
+
     for strike, strike_data in option_data.items():
 
         strike = float(strike)
 
         # ================= CE =================
-        if "ce" in strike_data:
+        # ONLY ATM OR ITM CE
+        if strike <= atm and "ce" in strike_data:
 
             ce_ltp = strike_data["ce"]["last_price"]
 
-            # only premiums ABOVE target
             if ce_ltp >= target and ce_ltp < best_ce_ltp:
 
                 best_ce_ltp = ce_ltp
@@ -328,11 +334,11 @@ def mark_range():
                 }
 
         # ================= PE =================
-        if "pe" in strike_data:
+        # ONLY ATM OR ITM PE
+        if strike >= atm and "pe" in strike_data:
 
             pe_ltp = strike_data["pe"]["last_price"]
 
-            # only premiums ABOVE target
             if pe_ltp >= target and pe_ltp < best_pe_ltp:
 
                 best_pe_ltp = pe_ltp
@@ -341,9 +347,7 @@ def mark_range():
                     "strike": strike,
                     "ltp": pe_ltp,
                     "security_id": strike_data["pe"]["security_id"]
-                }
-
-    # FINAL VALUES
+                }    # FINAL VALUES
 
     ce_strike = best_ce["strike"]
     CE_ID = best_ce["security_id"]
