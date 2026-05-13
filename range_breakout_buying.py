@@ -553,7 +553,7 @@ def on_index_candle(token, timestamp, candle):
 
 
 def on_option_tick(msg):
-    global ce_state, pe_state, telemetry
+    global ce_state, pe_state, telemetry , DAY_STOP
 
     if msg["type"] != 'Quote Data':
         return
@@ -626,7 +626,6 @@ def on_option_tick(msg):
     # =========================
     if state["position"]:
 
-        global DAY_STOP
 
         current_mtm = telemetry["pnl"] * LOTSIZE
 
