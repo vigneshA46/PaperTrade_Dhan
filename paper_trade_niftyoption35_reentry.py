@@ -15,6 +15,7 @@ from dispatcher import subscribe
 from queue import Queue
 import asyncio
 from find_instrument import FindInstrument
+from option_chain_cache import set_option_chain, get_option_chain
 
 
 # =========================
@@ -68,7 +69,6 @@ dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
 
-
 strategy_id = "7f4993c0-bc6b-4f42-a6ce-afcbb5709bae"
 loop = asyncio.new_event_loop()
 
@@ -77,6 +77,7 @@ def start_loop():
     loop.run_forever()
 
 threading.Thread(target=start_loop, daemon=True).start()
+
 
 def run_async(coro):
     try:
@@ -106,6 +107,7 @@ def get_today_deployments():
     except requests.exceptions.RequestException as e:
         print("API Error:", e)
         return None
+
 
 def group_users_by_broker(deployments):
     grouped = {}
@@ -451,11 +453,13 @@ else:
 
 atm = ATM
 
-oc = dhan.option_chain(
-    under_security_id=13,
-    under_exchange_segment="IDX_I",
-    expiry=str(next_expiry)   # change expiry dynamically
-)
+#oc = dhan.option_chain(
+#    under_security_id=13,
+#    under_exchange_segment="IDX_I",
+#    expiry=str(next_expiry)  
+#)
+
+oc = get_option_chain()
 
 
 option_data = oc["data"]["data"]["oc"]

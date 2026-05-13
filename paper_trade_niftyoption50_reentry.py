@@ -15,6 +15,7 @@ from dispatcher import subscribe
 from queue import Queue
 import asyncio
 from find_instrument import FindInstrument
+from option_chain_cache import set_option_chain, get_option_chain
 
 
 # =========================
@@ -452,12 +453,13 @@ else:
 
 atm = ATM
 
-oc = dhan.option_chain(
-    under_security_id=13,
-    under_exchange_segment="IDX_I",
-    expiry=str(next_expiry)  # change expiry dynamically
-)
+#oc = dhan.option_chain(
+#    under_security_id=13,
+#    under_exchange_segment="IDX_I",
+#    expiry=str(next_expiry)  
+#)
 
+oc = get_option_chain()
 
 option_data = oc["data"]["data"]["oc"]
 

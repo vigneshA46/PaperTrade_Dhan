@@ -16,6 +16,7 @@ from signal_emitter import emit_signal
 #from tests.test_order import get_today_deployments, group_users_by_broker
 import asyncio
 from find_instrument import FindInstrument
+from option_chain_cache import set_option_chain, get_option_chain
 
 
 # =========================
@@ -461,7 +462,8 @@ oc = dhan.option_chain(
     under_exchange_segment="IDX_I",
     expiry=str(next_expiry)   # change expiry dynamically
 )
-print(oc)
+
+set_option_chain(oc)
 
 option_data = oc["data"]["data"]["oc"]
 
