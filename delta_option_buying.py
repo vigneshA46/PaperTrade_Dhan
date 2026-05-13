@@ -221,6 +221,8 @@ def get_next_expiry():
 
     return next_expiry
 
+next_expiry = get_next_expiry()
+
 def get_high_delta_strikes(access_token, client_id):
     payload = {
         "UnderlyingScrip": 13,   # NIFTY
@@ -514,7 +516,7 @@ atm = ATM
 oc = dhan.option_chain(
     under_security_id=13,
     under_exchange_segment="IDX_I",
-    expiry=get_next_expiry()   # change expiry dynamically
+    expiry=str(next_expiry)  # change expiry dynamically
 )
 
 

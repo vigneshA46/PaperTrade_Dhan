@@ -368,6 +368,8 @@ def get_next_expiry():
     return next_expiry
 
 
+next_expiry = get_next_expiry()
+
 
 def init_state():
     return {
@@ -453,7 +455,7 @@ atm = ATM
 oc = dhan.option_chain(
     under_security_id=13,
     under_exchange_segment="IDX_I",
-    expiry=get_next_expiry()   # change expiry dynamically
+    expiry=str(next_expiry)  # change expiry dynamically
 )
 
 

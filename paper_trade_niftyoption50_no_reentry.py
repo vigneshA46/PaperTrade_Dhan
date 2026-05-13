@@ -370,10 +370,11 @@ def get_next_expiry():
 
     # first expiry is always nearest expiry
     next_expiry = expiry_list["data"][0]
+    print("next expiry", next_expiry)
 
     return next_expiry
 
-
+next_expiry = get_next_expiry()
 
 
 def init_state():
@@ -458,9 +459,9 @@ atm = ATM
 oc = dhan.option_chain(
     under_security_id=13,
     under_exchange_segment="IDX_I",
-    expiry=get_next_expiry()   # change expiry dynamically
+    expiry=str(next_expiry)   # change expiry dynamically
 )
-
+print(oc)
 
 option_data = oc["data"]["data"]["oc"]
 
