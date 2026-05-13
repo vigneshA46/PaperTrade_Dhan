@@ -906,8 +906,8 @@ for i in range(-20, 21):
 
     strike = ATM + (i * 50)
 
-    ce = find_option_security(fno_df, strike, "CE", today_date, "NIFTY")
-    pe = find_option_security(fno_df, strike, "PE", today_date, "NIFTY")
+    ce = find_option_security(fno_df, strike, "CE", today, "NIFTY")
+    pe = find_option_security(fno_df, strike, "PE", today, "NIFTY")
 
     if ce is not None:
         SUBSCRIBE_TOKENS.append(str(ce["SECURITY_ID"]))
