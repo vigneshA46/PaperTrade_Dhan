@@ -1,3 +1,44 @@
+from dhanhq import dhanhq,DhanContext
+import os
+from dhan_token import get_access_token
+from option_chain_cache import set_option_chain, get_option_chain
+
+
+access_token = get_access_token()
+client_id = os.getenv("CLIENT_ID")
+dhan_context = DhanContext(client_id, access_token)
+dhan = dhanhq(dhan_context)
+
+def get_next_expiry():
+    """
+    Returns current/next NIFTY expiry date
+    directly from Dhan expiry list API
+    """
+
+    expiries = dhan.expiry_list(
+        under_security_id=13,
+        under_exchange_segment="IDX_I"
+    )
+
+    expiry_list = expiries["data"]
+
+    # first expiry is always nearest expiry
+    next_expiry = expiry_list["data"][0]
+    print("next expiry", next_expiry)
+
+    return next_expiry
+
+next_expiry = get_next_expiry()
+oc = dhan.option_chain(
+    under_security_id=13,
+    under_exchange_segment="IDX_I",
+    expiry=str(next_expiry)   # change expiry dynamically
+)
+
+set_option_chain(oc)
+
+option_data = oc["data"]["data"]["oc"]
+
 from dispatcher import publish
 import paper_trade_niftyoption50_no_reentry as strategy1
 import paper_trade_niftyoption50_reentry as strategy2
@@ -71,7 +112,6 @@ def on_message(msg):
 
         rb_started = True
     
-feed.run_forever()
 while True:
     try:
 
@@ -88,6 +128,7 @@ while True:
             #feed.on_message = on_message
 
             #rb_started = True
+        feed.run_forever()
 
         data = feed.get_data()
 

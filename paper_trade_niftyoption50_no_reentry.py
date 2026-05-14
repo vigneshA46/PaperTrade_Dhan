@@ -465,6 +465,7 @@ oc = dhan.option_chain(
 )
 
 set_option_chain(oc)
+#print("set option chain : ", oc)
 
 option_data = oc["data"]["data"]["oc"]
 
@@ -844,6 +845,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 
 def on_message(msg):
+    print("tick",msg)
 
     if msg.get("type") != "Quote Data":
         return
@@ -931,6 +933,7 @@ TOKENS = list(set(SUBSCRIBE_TOKENS))
 MY_TOKENS = [CE_ID, PE_ID]
 
 def on_tick(token, msg):
+    print("MSG :",msg)
 
     if token not in MY_TOKENS:
         #print("token not in tokens")
