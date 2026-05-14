@@ -522,6 +522,10 @@ PE_ID = best_pe["security_id"]
 
 finder=FindInstrument()
 
+ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
+pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
+
+
 AngelCE = finder.get_option("NIFTY" , int(ce_strike) , "CE")
 AngelPE = finder.get_option("NIFTY" , int(ce_strike) , "PE")
 
