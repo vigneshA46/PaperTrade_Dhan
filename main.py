@@ -1,13 +1,35 @@
-from dhanhq import dhanhq,DhanContext
-import os
+from dhanhq import dhanhq, DhanContext, MarketFeed
 from dhan_token import get_access_token
-from option_chain_cache import set_option_chain, get_option_chain
+from option_chain_cache import set_option_chain
 
+from datetime import datetime
+import pytz
+import time
+import os
+import threading
 
 access_token = get_access_token()
 client_id = os.getenv("CLIENT_ID")
+
 dhan_context = DhanContext(client_id, access_token)
 dhan = dhanhq(dhan_context)
+
+IST = pytz.timezone("Asia/Kolkata")
+rb_started = False
+
+print("Waiting for 9:15...")
+
+while True:
+
+    now = datetime.now(IST)
+
+    if now.hour >= 9 and now.minute >= 15:
+
+        print("9:15 reached")
+
+        break
+
+    time.sleep(1)
 
 def get_next_expiry():
     """
@@ -29,15 +51,16 @@ def get_next_expiry():
     return next_expiry
 
 next_expiry = get_next_expiry()
+
 oc = dhan.option_chain(
     under_security_id=13,
     under_exchange_segment="IDX_I",
-    expiry=str(next_expiry)   # change expiry dynamically
+    expiry=str(next_expiry)
 )
 
 set_option_chain(oc)
 
-option_data = oc["data"]["data"]["oc"]
+print("OPTION CHAIN LOADED")
 
 from dispatcher import publish
 import paper_trade_niftyoption50_no_reentry as strategy1
@@ -111,6 +134,9 @@ def on_message(msg):
         threading.Thread(target=strategy9.start_strategy,daemon=True).start()
 
         rb_started = True
+
+
+feed.run_forever()
     
 while True:
     try:
@@ -128,7 +154,6 @@ while True:
             #feed.on_message = on_message
 
             #rb_started = True
-        feed.run_forever()
 
         data = feed.get_data()
 

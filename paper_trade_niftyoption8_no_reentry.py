@@ -459,6 +459,7 @@ atm = ATM
 #)
 
 oc = get_option_chain()
+#print("OC data ",oc)
 
 
 
