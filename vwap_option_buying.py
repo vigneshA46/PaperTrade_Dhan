@@ -786,17 +786,20 @@ instruments = [
 ]
 
 
-feed = MarketFeed(dhan_context, instruments, "v2")
- 
-while True:
-    try:
-        feed.run_forever()
-        data = feed.get_data()
+TOKENS = [
+  CE_ID , PE_ID
+]
 
-        if data:
-            on_message(data)
+MY_TOKENS = [CE_ID , PE_ID]
 
-    except Exception as e:
-        print("WS ERROR:", e)
-        feed.run_forever()
+
+def on_tick(token, msg):
+
+    if token not in TOKENS:
+        return  
+    on_message(msg)
+
+    
+for t in TOKENS:
+    subscribe(t, on_tick)
 
