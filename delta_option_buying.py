@@ -65,6 +65,13 @@ today = datetime.now(IST).strftime("%Y-%m-%d")
 #today = "2026-04-06"
 strategy_id = "a6bbea5c-ee7e-41c2-b39a-fb4703422d36"
 
+access_token = get_access_token()
+dhan_context = DhanContext(CLIENT_ID, access_token)
+dhan = dhanhq(dhan_context)
+
+fno_df=load_fno_master()
+
+
 loop = asyncio.new_event_loop()
 
 def start_loop():
