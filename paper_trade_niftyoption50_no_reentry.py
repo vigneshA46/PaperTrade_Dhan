@@ -933,7 +933,6 @@ TOKENS = list(set(SUBSCRIBE_TOKENS))
 MY_TOKENS = [CE_ID, PE_ID]
 
 def on_tick(token, msg):
-    print("MSG :",msg)
 
     if token not in MY_TOKENS:
         #print("token not in tokens")

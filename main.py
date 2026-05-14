@@ -3,6 +3,7 @@ from dhan_token import get_access_token
 from option_chain_cache import set_option_chain
 
 from datetime import datetime
+from datetime import time as dtime
 import pytz
 import time
 import os
@@ -23,7 +24,7 @@ while True:
 
     now = datetime.now(IST)
 
-    if now.hour >= 9 and now.minute >= 15:
+    if now.time() >= dtime(9, 16):
 
         print("9:15 reached")
 
@@ -86,9 +87,9 @@ rb_started = False
 
 # collect all tokens
 ALL_TOKENS = set()
-ALL_TOKENS.update(strategy1.TOKENS)
-ALL_TOKENS.update(strategy6.TOKENS)
-ALL_TOKENS.update(strategy7.TOKENS)
+ALL_TOKENS.update(map(str, strategy1.TOKENS))
+ALL_TOKENS.update(map(str, strategy6.TOKENS))
+ALL_TOKENS.update(map(str, strategy7.TOKENS))
 #ALL_TOKENS.update(strategy5.TOKENS)
 #ALL_TOKENS.update(strategy4.TOKENS)
 
@@ -114,7 +115,6 @@ instruments.append((MarketFeed.IDX, "13", MarketFeed.Quote))
 feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
-
     global rb_started
 
     token = str(msg["security_id"])
@@ -136,31 +136,19 @@ def on_message(msg):
         rb_started = True
 
 
-feed.run_forever()
     
 while True:
     try:
 
+        feed.run_forever()
 
-            #ALL_TOKENS.update(strategy9.TOKENS)
+        while True:
 
-            #instruments = [
-                #(MarketFeed.NSE_FNO, token, MarketFeed.Quote)
-                #for (token) in ALL_TOKENS
-            #]
+            data = feed.get_data()
 
-            #feed = MarketFeed(dhan_context, instruments, "v2")
-
-            #feed.on_message = on_message
-
-            #rb_started = True
-
-        data = feed.get_data()
-
-        if data:
-            on_message(data)
+            if data:
+                on_message(data)
 
     except Exception as e:
         print("WS ERROR:", e)
         feed.run_forever()
-        
