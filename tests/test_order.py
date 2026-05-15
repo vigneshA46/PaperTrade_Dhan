@@ -42,11 +42,18 @@ import asyncio
 from strategy_cache import load_users
 from signal_emitter import emit_signal
 from brokers.dhan import DhanAdapter
+from find_instrument import FindInstrument
+
+
+finder = FindInstrument()
+
+
+AngelCE = finder.get_option("NIFTY" , 23700 , "CE")
+
+print(AngelCE)
 
 
 import requests
-
-
 
 strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
 
@@ -101,7 +108,11 @@ deployments = get_today_deployments()
 
 users = group_users_by_broker(deployments)
 
+
+
 print("FORMATTED USERS:", users)
+
+
 
 asyncio.run(
     emit_signal({
@@ -111,11 +122,11 @@ asyncio.run(
         "side": "BUY",
         "quantity": 65,
         "security_id": "63426",
-        "token": 63396,
-        "symbol": "NIFTY05MAY2624000CE",
+        "token": 51366,
+        "symbol": "NIFTY05MAY2623700CE",
         "exchange": "NFO",
-        "expiry": "2026-05-05",
-        "strike": 24000,
+        "expiry": "2026-05-19",
+        "strike": 23700,
         "zebusymbol": "NIFTY",
         "is_ce": True,
         "is_fno": True,
