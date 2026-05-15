@@ -528,6 +528,15 @@ atm = ATM
 #    expiry=str(next_expiry)  
 #)
 
+oc = dhan.option_chain(
+    under_security_id=13,
+    under_exchange_segment="IDX_I",
+    expiry=str(next_expiry)
+)
+
+# cache set
+set_option_chain(oc)
+
 oc = get_option_chain()
 
 

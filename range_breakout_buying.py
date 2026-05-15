@@ -283,8 +283,14 @@ def mark_range():
     close_930 = None
 
     for i in range(len(timestamps)):
+        
+        raw_ts = int(timestamps[i])
 
-        ts = datetime.fromtimestamp(timestamps[i], IST)
+
+        if raw_ts > 10_000_000_000:
+            raw_ts = raw_ts / 1000
+
+        ts = datetime.fromtimestamp(raw_ts, IST)
 
         # =========================
         # 09:15 OPEN
