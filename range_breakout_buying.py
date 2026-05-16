@@ -13,6 +13,9 @@ from dispatcher import subscribe
 from find_security import load_fno_master, find_option_security
 from queue import Queue
 import threading
+from signal_emitter import emit_signal
+import asyncio
+from find_instrument import FindInstrument
 # =========================
 # CONFIG
 # =========================
@@ -60,6 +63,108 @@ dhan = dhanhq(dhan_context)
 
 builder = OneMinuteCandleBuilder()
 fno_df = load_fno_master()
+
+strategy_id = "87e8b44c-5d91-4b73-b340-800686b9c62c"
+loop = asyncio.new_event_loop()
+
+def start_loop():
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+threading.Thread(target=start_loop, daemon=True).start()
+
+def run_async(coro):
+    try:
+        if asyncio.iscoroutine(coro):
+            asyncio.run_coroutine_threadsafe(coro, loop)
+        else:
+            print("❌ Not coroutine:", coro)
+    except Exception as e:
+        print("WS error: ", e)
+
+def get_today_deployments():
+    url = f"https://algoapi.dreamintraders.in/api/deployments/today/{strategy_id}"
+
+    try:
+        response = requests.get(url, timeout=10)
+
+        # Raise error if status not 200
+        response.raise_for_status()
+
+        data = response.json()
+
+        # 👉 store in variable (this is what you asked)
+        user_deployments = data
+
+        return user_deployments
+
+    except requests.exceptions.RequestException as e:
+        print("API Error:", e)
+        return None
+
+def group_users_by_broker(deployments):
+    grouped = {}
+
+    if not deployments:
+        return grouped
+
+    for d in deployments:
+
+        if d["type"] == "paper":
+            continue
+        broker = d.get("broker_name")
+
+        if not broker:
+            continue
+
+        if broker not in grouped:
+            grouped[broker] = []
+
+        grouped[broker].append(d)
+
+    return grouped
+
+
+def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot,users):
+
+    if name == "CE":
+        row = AngelCE
+    else:
+        row = AngelPE
+
+    expiry_date = ce_row["SM_EXPIRY_DATE"]
+
+    day = expiry_date.strftime("%d")
+    month = expiry_date.strftime("%b").upper()
+    year = expiry_date.strftime("%y")
+
+    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    expiry = expiry_date.strftime("%Y-%m-%d")
+
+    return {
+        "strategy_id": COMMON_ID,
+        "users": users,
+        "option": name,
+        "side": side,
+        "quantity": lot * LOTSIZE,
+        "security_id": token,
+        "token": int(row["token"]),
+        "event_type": event_type,
+        "leg_name": name,
+        "symbol": symbol,
+        "exchange": "NFO",
+        "expiry":expiry,
+        "strike": ATM,
+        "price":ltp,
+        "pnl":pnl,
+        "cum_pnl":cum_pnl,
+        "zebusymbol": "NIFTY",
+        "is_ce": True if name == "CE" else False,
+        "is_fno": True,
+        "antsymbol": "NIFTY",
+        "reason":reason
+    }
+
 
 
 
@@ -396,6 +501,8 @@ def mark_range():
     pe_strike = best_pe["strike"]
     PE_ID = best_pe["security_id"]
 
+    
+
     print(f"Selected CE Strike: {ce_strike}")
     print(f"CE LTP: {best_ce['ltp']}")
     print(f"CE Security ID: {CE_ID}")
@@ -600,13 +707,19 @@ def on_option_tick(msg):
         state["sl"] = ltp + 25   # loss side (SELL)
         state["tsl_active"] = False
 
+        deployments = get_today_deployments()
+        users = group_users_by_broker(deployments)
+        print("FORMATTED USERS:", users)
+
+        
+
         print(f"✅ {leg_name} ENTRY @ {ltp}")
 
 
         #log_event(leg_name, token, "ENTRY", ltp, "Breakout Entry")
         print(f"{leg_name}, {token}, {SYMBOL}, {state['lot']}, {ltp},{telemetry['pnl']}")
 
-
+        run_async(emit_signal(build_payload(leg_name,"SELL",token,"entry","ENTRY",ltp,telemetry["pnl"],telemetry["pnl"],state["lot"],users)))
         log_trade_event(
                 event_type="ENTRY",
                 leg_name=str(leg_name),
@@ -687,6 +800,27 @@ def on_option_tick(msg):
             state["force_exit"] = False
             state["tsl_active"] = False
 
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+            print("FORMATTED USERS:", users)
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        leg_name,
+                        "BUY",
+                        token,
+                        "time exit",
+                        "EXIT",
+                        ltp,
+                        final_pnl,
+                        telemetry["pnl"],
+                        state["lot"],
+                        users
+                    )
+                )
+            )
+
             log_trade_event(
                 event_type="EXIT",
                 leg_name=str(leg_name),
@@ -719,6 +853,27 @@ def on_option_tick(msg):
             state["force_exit"] = False
 
             #log_event(leg_name, token, "EXIT", ltp, "INDEX EXIT")
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+            print("FORMATTED USERS:", users)
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        leg_name,
+                        "BUY",
+                        token,
+                        "index exit",
+                        "EXIT",
+                        ltp,
+                        final_pnl,
+                        telemetry["pnl"],
+                        state["lot"],
+                        users
+                    )
+                )
+            )
             
 
             log_trade_event(
@@ -782,6 +937,26 @@ def on_option_tick(msg):
                 state["rearm_required"] = True
                 state["tsl_active"] = False
 
+                deployments = get_today_deployments()
+                users = group_users_by_broker(deployments)
+
+                run_async(
+                    emit_signal(
+                        build_payload(
+                            leg_name,
+                            "BUY",
+                            token,
+                            "sl hit",
+                            "EXIT",
+                            ltp,
+                            final_pnl,
+                            telemetry["pnl"],
+                            state["lot"],
+                            users
+                        )
+                    )
+                )
+
                 log_trade_event(
                     event_type="EXIT",
                     leg_name=str(leg_name),
@@ -798,22 +973,53 @@ def on_option_tick(msg):
 # MAIN
 # =========================
 
-wait_for_start()
-
 load_fno_master()
 
 ce_state = init_state()
 pe_state = init_state()
 
-mark_range()
+today = datetime.now().date()
+finder=FindInstrument()
+
+ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
+pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
 
 
-TOKENS = [CE_ID, PE_ID, INDEX_TOKEN]
+AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
+AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
 
-threading.Thread(target=trade_log_worker, daemon=True).start()
+def strategy():
 
-print("\n🚀 Range Breakout Paper Engine Running...\n")
+    global ce_state, pe_state, TOKENS
 
+    mark_range()
+
+    ce_state = init_state()
+    pe_state = init_state()
+
+    TOKENS = [CE_ID, PE_ID, INDEX_TOKEN]
+    for t in TOKENS:
+        subscribe(t, on_tick)
+
+    threading.Thread(target=trade_log_worker, daemon=True).start()
+
+    print("\n🚀 Range Breakout Buying Paper Engine Running...\n")
+
+def on_tick(token, msg):
+
+    if token not in TOKENS:
+        return  
+
+    if msg:
+
+        if str(msg["security_id"]) == INDEX_TOKEN:
+            on_tick_index(msg)
+
+        elif str(msg["security_id"]) in (CE_ID, PE_ID):
+            on_option_tick(msg)
+
+            
+"""
 instruments = [
     (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
     (MarketFeed.NSE_FNO, str(PE_ID), MarketFeed.Quote),
@@ -844,8 +1050,7 @@ while True:
         feed.run_forever()
 
         
-            
-""" 
+             
 def on_tick(token, msg):
 
     if token not in [CE_ID , PE_ID , INDEX_TOKEN]:

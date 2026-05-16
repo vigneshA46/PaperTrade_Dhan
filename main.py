@@ -20,6 +20,7 @@ import pytz
 import threading
 
 rb_started = False
+rb_buying=False
 
 # collect all tokens
 ALL_TOKENS = set()
@@ -60,6 +61,17 @@ def on_message(msg):
     ist = pytz.timezone("Asia/Kolkata")
     now = datetime.now(ist)
     #print(now.hour, now.minute, rb_started)
+
+    if not rb_buying and now.hour >= 9 and now.minute >= 31:
+        #print("STARTED CON")
+
+        import range_breakout_buying as strategy11
+
+        print("Starting Range Breakout Buying Strategy")
+
+        threading.Thread(target=strategy11.strategy,daemon=True).start()
+
+        rb_buying = True
 
     if not rb_started and now.hour >= 10 and now.minute >= 1:
         print("STARTED CON")
