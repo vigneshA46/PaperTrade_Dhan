@@ -1015,7 +1015,7 @@ def on_tick(token, msg):
         if str(msg["security_id"]) == INDEX_TOKEN:
             on_tick_index(msg)
 
-        elif str(msg["security_id"]) in (CE_ID, PE_ID):
+        elif str(msg["security_id"]) in (str(CE_ID), str(PE_ID)):
             on_option_tick(msg)
 
             
