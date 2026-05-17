@@ -53,7 +53,7 @@ feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
 
-    global rb_started
+    global rb_started , rb_buying
 
     token = str(msg["security_id"])
     publish(token, msg)

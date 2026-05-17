@@ -26,7 +26,7 @@ ATM = None
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
-COMMON_ID = "87e8b44c-5d91-4b73-b340-800686b9c62c"
+COMMON_ID = "7dddad3f-8b84-46cb-b003-e9b84f597d96"
 SYMBOL = "NIFTY"
 symbol="NIFTY"
 
