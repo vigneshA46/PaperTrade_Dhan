@@ -142,7 +142,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         symbol = f"NIFTY{day}{month}{year}{ce_strike}{name}"
     else:
         symbol = f"NIFTY{day}{month}{year}{pe_strike}{name}"
-        
+
     expiry = expiry_date.strftime("%Y-%m-%d")
 
     return {
@@ -370,7 +370,7 @@ def calculate_atm(price, step=50):
 
 
 def mark_range():
-    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,ce_row,pe_row,AngelCE,AngelPE
+    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,ce_row,pe_row,AngelCE,AngelPE,ATM
 
     today = datetime.now(IST).strftime("%Y-%m-%d")
     idx = dhan.intraday_minute_data(
