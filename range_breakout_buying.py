@@ -366,7 +366,7 @@ def calculate_atm(price, step=50):
 
 
 def mark_range():
-    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today
+    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,ce_row,pe_row,AngelCE,AngelPE
 
     today = datetime.now(IST).strftime("%Y-%m-%d")
     idx = dhan.intraday_minute_data(
@@ -500,6 +500,16 @@ def mark_range():
 
     pe_strike = best_pe["strike"]
     PE_ID = best_pe["security_id"]
+
+    finder = FindInstrument()
+
+    ce_row = find_option_security(fno_df,ce_strike,"CE",today,"NIFTY")
+
+    pe_row = find_option_security(fno_df,pe_strike,"PE",today,"NIFTY")
+
+    AngelCE = finder.get_option("NIFTY",int(ce_strike),"CE")
+
+    AngelPE = finder.get_option("NIFTY",int(pe_strike),"PE")
 
     
 
@@ -972,22 +982,6 @@ def on_option_tick(msg):
 # =========================
 # MAIN
 # =========================
-
-load_fno_master()
-
-ce_state = init_state()
-pe_state = init_state()
-
-today = datetime.now().date()
-finder=FindInstrument()
-
-ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
-pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
-
-
-AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
-
 def strategy():
 
     global ce_state, pe_state, TOKENS
