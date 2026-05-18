@@ -342,7 +342,7 @@ def calculate_atm(price, step=50):
     return int(round(price / step) * step)
 
 def mark_range():
-    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,AngelCE,AngelPE,ce_row
+    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,AngelCE,AngelPE,ce_row,ATM
 
     #today = datetime.now(IST).strftime("%Y-%m-%d")
     idx = dhan.intraday_minute_data(
