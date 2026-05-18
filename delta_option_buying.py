@@ -145,7 +145,11 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
     month = expiry_date.strftime("%b").upper()
     year = expiry_date.strftime("%y")
 
-    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    if name == "CE":
+        symbol = f"NIFTY{day}{month}{year}{ce_strike}{name}"
+    else:
+        symbol = f"NIFTY{day}{month}{year}{pe_strike}{name}"
+
     expiry = expiry_date.strftime("%Y-%m-%d")
 
     return {
@@ -564,15 +568,15 @@ pe_strike = str(PE_STRIKE)
 
 finder=FindInstrument()
 
-ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
-pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
+ce_row = find_option_security(fno_df, CE_STRIKE, "CE", today, "NIFTY")
+pe_row = find_option_security(fno_df, PE_STRIKE, "PE", today, "NIFTY")
 
 CE_ID = str(ce_row["SECURITY_ID"])
 PE_ID = str(pe_row["SECURITY_ID"])
 
 
 AngelCE = finder.get_option("NIFTY" , int(ce_strike) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ce_strike) , "PE")
+AngelPE = finder.get_option("NIFTY" , int(pe_strike) , "PE")
 
 print("angel tokens" , AngelCE , AngelPE)
 
