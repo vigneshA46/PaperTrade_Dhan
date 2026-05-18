@@ -558,8 +558,8 @@ best_ce = None
 best_pe = None
 
 
-ce_strike = str(CE_STRIKE)
-pe_strike = str(PE_STRIKE)
+ce_strike = CE_STRIKE
+pe_strike = PE_STRIKE
 
 
 finder=FindInstrument()
