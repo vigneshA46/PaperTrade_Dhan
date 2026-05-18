@@ -1,15 +1,4 @@
 from dispatcher import publish
-import paper_trade_niftyoption50_no_reentry as strategy1
-import paper_trade_niftyoption50_reentry as strategy2
-import paper_trade_niftyoption35_reentry as strategy3
-import paper_trade_niftyoption35_reentry_point as strategy4
-import paper_trade_niftyoption50_reentry_point as strategy5
-
-import delta_option_buying as strategy6
-import bank_nifty_option_buying as strategy7
-import paper_trade_niftyoption8_no_reentry as strategy8
-import vwap_option_buying as strategy10
-
 from dhanhq import MarketFeed
 from dhanhq import dhanhq,DhanContext
 from datetime import datetime
@@ -19,20 +8,26 @@ import os
 import pytz
 import threading
 
+try:
+    import paper_trade_niftyoption50_no_reentry as strategy1
+except Exception as e:
+    print("strategy1 ERROR:", e)
+
+try:
+    import bank_nifty_option_buying as strategy7
+except Exception as e:
+    print("strategy7 ERROR:", e)
+
 rb_started = False
 rb_buying=False
 
 # collect all tokens
 ALL_TOKENS = set()
-ALL_TOKENS.update(strategy1.TOKENS)
-ALL_TOKENS.update(strategy6.TOKENS)
-ALL_TOKENS.update(strategy7.TOKENS)
-#ALL_TOKENS.update(strategy5.TOKENS)
-#ALL_TOKENS.update(strategy4.TOKENS)
+if 'strategy1' in globals():
+    ALL_TOKENS.update(strategy1.TOKENS)
 
-#ALL_TOKENS.update(strategy8.TOKENS)
-#ALL_TOKENS.update(strategy2.TOKENS)
-#ALL_TOKENS.update(strategy3.TOKENS)
+if 'strategy7' in globals():
+    ALL_TOKENS.update(strategy7.TOKENS)
 
 
 access_token = get_access_token()
@@ -55,34 +50,50 @@ def on_message(msg):
 
     global rb_started , rb_buying
 
-    token = str(msg["security_id"])
-    publish(token, msg)
+    try:
 
-    ist = pytz.timezone("Asia/Kolkata")
-    now = datetime.now(ist)
-    #print(now.hour, now.minute, rb_started)
+        token = str(msg["security_id"])
 
-    if not rb_buying and now.hour >= 9 and now.minute >= 31:
-        #print("STARTED CON")
+        publish(token, msg)
 
-        import range_breakout_buying as strategy11
+        ist = pytz.timezone("Asia/Kolkata")
+        now = datetime.now(ist)
 
-        print("Starting Range Breakout Buying Strategy")
+        if not rb_buying and now.hour >= 9 and now.minute >= 31:
 
-        threading.Thread(target=strategy11.strategy,daemon=True).start()
+            try:
 
-        rb_buying = True
+                import range_breakout_buying as strategy11
 
-    if not rb_started and now.hour >= 10 and now.minute >= 1:
-        print("STARTED CON")
+                print("Starting Range Breakout Buying Strategy")
 
-        import range_breakout_state as strategy9
+                threading.Thread(target=strategy11.strategy,daemon=True).start()
 
-        print("Starting Range Breakout Strategy")
+                rb_buying = True
 
-        threading.Thread(target=strategy9.start_strategy,daemon=True).start()
+            except Exception as e:
 
-        rb_started = True
+                print("RB BUYING ERROR:", e)
+
+        if not rb_started and now.hour >= 10 and now.minute >= 1:
+
+            try:
+
+                import range_breakout_state as strategy9
+
+                print("Starting Range Breakout Strategy")
+
+                threading.Thread(target=strategy9.start_strategy,daemon=True).start()
+
+                rb_started = True
+
+            except Exception as e:
+
+                print("RB STATE ERROR:", e)
+
+    except Exception as e:
+
+        print("ON MESSAGE ERROR:", e)
     
 feed.run_forever()
 while True:
