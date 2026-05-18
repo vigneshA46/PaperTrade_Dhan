@@ -553,7 +553,7 @@ def on_index_candle(token, timestamp, candle):
 
 
 def on_option_tick(msg):
-    global ce_state, pe_state, telemetry
+    global ce_state, pe_state, telemetry ,DAY_STOP
 
     if msg["type"] != 'Quote Data':
         return
@@ -624,7 +624,6 @@ def on_option_tick(msg):
     # =========================
     if state["position"]:
 
-        global DAY_STOP
 
         current_mtm = telemetry["pnl"] * LOTSIZE
 
@@ -770,31 +769,31 @@ def on_option_tick(msg):
             # =========================
             # ❌ SL HIT
             # =========================
-        if ltp <= state["sl"]:
-            print(f"❌ {leg_name} SL HIT @ {ltp}")
+        #if ltp <= state["sl"]:
+        #    print(f"❌ {leg_name} SL HIT @ {ltp}")
 
-            exit_price = ltp
-            final_pnl = exit_price - state["entry_price"]
-            state["cum_pnl"] += final_pnl
+            #exit_price = ltp
+            #final_pnl = exit_price - state["entry_price"]
+            #state["cum_pnl"] += final_pnl
 
-            telemetry["pnl"] += final_pnl
+            #telemetry["pnl"] += final_pnl
 
-            state["position"] = False
-            state["rearm_required"] = True
+            #state["position"] = False
+            #state["rearm_required"] = True
 
-            log_trade_event(
-                    event_type="EXIT",
-                    leg_name=str(leg_name),
-                    token=token,
-                    symbol=SYMBOL,
-                    side="BUY",
-                    lot=state["lot"],
-                    price=exit_price,
-                    reason="SL",
-                    pnl=final_pnl,
-                    cum_pnl=telemetry["pnl"]
-                )
-            state["lot"] += 1
+            #log_trade_event(
+                    #event_type="EXIT",
+                    #leg_name=str(leg_name),
+                    #token=token,
+                    #symbol=SYMBOL,
+                    #side="BUY",
+                    #lot=state["lot"],
+                    #price=exit_price,
+                    #reason="SL",
+                    #pnl=final_pnl,
+                    #cum_pnl=telemetry["pnl"]
+                #)
+            #state["lot"] += 1
             
 # =========================
 # MAIN
