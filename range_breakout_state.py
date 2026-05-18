@@ -339,7 +339,7 @@ def calculate_atm(price, step=50):
     return int(round(price / step) * step)
 
 def mark_range():
-    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today
+    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,AngelCE,AngelPE,ce_row
 
     #today = datetime.now(IST).strftime("%Y-%m-%d")
     idx = dhan.intraday_minute_data(
@@ -387,6 +387,8 @@ def mark_range():
         print("Waiting for 09:55 candle...")
 
     print(candle)
+    
+    finder = FindInstrument()
 
     ce_strike = ATM - 400
     pe_strike = ATM + 400
@@ -396,6 +398,9 @@ def mark_range():
 
     CE_ID = str(ce_row["SECURITY_ID"])
     PE_ID = str(pe_row["SECURITY_ID"])
+
+    AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
+    AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
 
     
     # Log CE leg
@@ -831,17 +836,6 @@ def on_option_tick(msg):
 # =========================
 # MAIN
 # =========================
-
-finder = FindInstrument()
-
-ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
-pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
-
-CE_ID = str(ce_row["SECURITY_ID"])
-PE_ID = str(pe_row["SECURITY_ID"])
-
-AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
 
 load_fno_master()
 
