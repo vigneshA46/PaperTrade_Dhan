@@ -1013,7 +1013,7 @@ pe_state = init_state()
 #for t in TOKENS:
 #    subscribe(t, on_tick)
 
-#threading.Thread(target=trade_log_worker, daemon=True).start()
+threading.Thread(target=trade_log_worker, daemon=True).start()
 
 print("\n🚀 Range Breakout Buying Paper Engine Running...\n")
 
