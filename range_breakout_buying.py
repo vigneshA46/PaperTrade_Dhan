@@ -1006,7 +1006,7 @@ instruments = [
 
 ]
 
-TOKENS = [CE_ID, PE_ID]
+TOKENS = str([CE_ID, PE_ID])
 
 def on_tick(token, msg):
 
