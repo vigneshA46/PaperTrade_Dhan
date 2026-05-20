@@ -74,12 +74,20 @@ def on_message(msg):
 
                 print("Starting Range Breakout Buying")
 
-                import range_breakout_buying as strategy12
-                print("Imported 12")
-                import range_breakout_buying_cum as strategy13
-                print("Imported 13")
-                import range_breakout_buying_points as strategy14
-                print("imported 14")
+                threading.Thread(
+                    target=lambda: __import__("range_breakout_buying"),
+                    daemon=True
+                ).start()
+
+                threading.Thread(
+                    target=lambda: __import__("range_breakout_buying_cum"),
+                    daemon=True
+                ).start()
+
+                threading.Thread(
+                    target=lambda: __import__("range_breakout_buying_points"),
+                    daemon=True
+                ).start()
 
                 rb_buying = True
 
