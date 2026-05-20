@@ -1007,7 +1007,7 @@ mark_range()
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
-print("\n🚀 Range Breakout Paper Engine Running(POINTS)...\n")
+print("\n🚀 Range Breakout Paper Engine Running(CUMULATIVE)...\n")
 
 instruments = [
     (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
