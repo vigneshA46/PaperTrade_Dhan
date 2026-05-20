@@ -394,7 +394,7 @@ def init_state():
 
 wait_for_start()
 
-print("\n🚀 NIFTY OPTION BUYING 50 STARTED\n")
+print("\n🚀 NIFTY OPTION BUYING 50 CUMULATIVE LTP STARTED\n")
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 

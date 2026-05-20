@@ -392,7 +392,7 @@ def init_state():
 
 wait_for_start()
 
-print("\n🚀 NIFTY OPTION BUYING 50 REENTRY POINT STARTED\n")
+print("\n🚀 NIFTY OPTION BUYING 50 LTP STARTED\n")
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
