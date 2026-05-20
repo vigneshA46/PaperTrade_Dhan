@@ -985,33 +985,13 @@ def on_option_tick(msg):
                 )
 # =========================
 # MAIN
-# =========================
-
-
-
-def on_tick(token, msg):
-
-    if token not in TOKENS:
-        return  
-
-    if msg:
-
-        if str(msg["security_id"]) == INDEX_TOKEN:
-            on_tick_index(msg)
-
-        elif str(msg["security_id"]) in (str(CE_ID), str(PE_ID)):
-            on_option_tick(msg)
-    
+# =========================    
 wait_for_start()
 
 mark_range()
 
 ce_state = init_state()
 pe_state = init_state()
-
-#TOKENS = [CE_ID, PE_ID]
-#for t in TOKENS:
-#    subscribe(t, on_tick)
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
@@ -1026,10 +1006,25 @@ instruments = [
 
 ]
 
+TOKENS = [CE_ID, PE_ID]
 
-feed = MarketFeed(dhan_context, instruments, "v2")
+def on_tick(token, msg):
 
+    if token not in TOKENS:
+        return  
 
+    if msg:
+
+        if str(msg["security_id"]) == str(INDEX_TOKEN):
+            on_tick_index(msg)
+
+        elif str(msg["security_id"]) in (str(CE_ID), str(PE_ID)):
+            on_option_tick(msg)
+
+for t in TOKENS:
+    subscribe(t, on_tick)
+
+"""
 while True:
     try:
 
@@ -1047,6 +1042,6 @@ while True:
     except Exception as e:
         print("WS ERROR:", e)
         feed.run_forever()
-
+"""
         
              

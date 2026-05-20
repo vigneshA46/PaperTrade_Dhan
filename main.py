@@ -57,7 +57,7 @@ feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
 
-    global rb_started , rb_buying
+    global rb_started, rb_buying
 
     try:
 
@@ -68,21 +68,35 @@ def on_message(msg):
         ist = pytz.timezone("Asia/Kolkata")
         now = datetime.now(ist)
 
-        if not rb_started and now.hour >= 10 and now.minute >= 1:
+        if not rb_buying and now.hour == 9 and now.minute >= 31:
 
             try:
 
-                import range_breakout_state as strategy9
+                print("Starting Range Breakout Buying")
 
-                print("Starting Range Breakout Strategy")
+                import range_breakout_buying as strategy12
 
-                threading.Thread(target=strategy9.start_strategy,daemon=True).start()
-
-                rb_started = True
+                rb_buying = True
 
             except Exception as e:
 
-                print("RB STATE ERROR:", e)
+                print("RB BUYING ERROR:", e)
+
+        if not rb_started and now.hour >= 10 and now.minute >= 1:
+
+                try:
+
+                    import range_breakout_state as strategy9
+
+                    print("Starting Range Breakout Strategy")
+
+                    threading.Thread(target=strategy9.start_strategy,daemon=True).start()
+
+                    rb_started = True
+
+                except Exception as e:
+
+                    print("RB STATE ERROR:", e)
 
     except Exception as e:
 
