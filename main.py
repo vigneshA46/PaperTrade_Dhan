@@ -11,7 +11,7 @@ import paper_trade_niftyoption50_reentry as strategy2
 import paper_trade_niftyoption35_reentry as strategy3
 import paper_trade_niftyoption35_reentry_point as strategy4
 import paper_trade_niftyoption50_reentry_point as strategy5
-import subprocess
+
 import delta_option_buying as strategy6
 import paper_trade_niftyoption8_no_reentry as strategy8
 import vwap_option_buying as strategy10
@@ -75,8 +75,11 @@ def on_message(msg):
                 print("Starting Range Breakout Buying")
 
                 import range_breakout_buying as strategy12
-                subprocess.Popen(["python", "-u", "strategy12.py"])
-                subprocess.Popen(["python", "-u", "strategy13.py"])
+                print("Imported 12")
+                import range_breakout_buying_cum as strategy13
+                print("Imported 13")
+                import range_breakout_buying_points as strategy14
+                print("imported 14")
 
                 rb_buying = True
 
