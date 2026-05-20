@@ -64,7 +64,7 @@ dhan = dhanhq(dhan_context)
 builder = OneMinuteCandleBuilder()
 fno_df = load_fno_master()
 
-strategy_id = "87e8b44c-5d91-4b73-b340-800686b9c62c"
+strategy_id = "7dddad3f-8b84-46cb-b003-e9b84f597d96"
 loop = asyncio.new_event_loop()
 
 def start_loop():

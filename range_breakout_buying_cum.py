@@ -29,7 +29,7 @@ ATM = None
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
-COMMON_ID = "7dddad3f-8b84-46cb-b003-e9b84f597d96"
+COMMON_ID = "4352b6b6-abd4-459d-8d00-a30b3bc70e4e"
 SYMBOL = "NIFTY"
 symbol="NIFTY"
 
@@ -64,7 +64,7 @@ dhan = dhanhq(dhan_context)
 builder = OneMinuteCandleBuilder()
 fno_df = load_fno_master()
 
-strategy_id = "87e8b44c-5d91-4b73-b340-800686b9c62c"
+strategy_id = "4352b6b6-abd4-459d-8d00-a30b3bc70e4e"
 loop = asyncio.new_event_loop()
 
 def start_loop():

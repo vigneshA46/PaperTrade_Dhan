@@ -1009,8 +1009,9 @@ instruments = [
 TOKENS = [str(CE_ID), str(PE_ID),str(INDEX_TOKEN)]
 
 def on_tick(token, msg):
+
     
-    if token not in TOKENS:
+    if str(token) not in TOKENS:
         return  
 
     if msg:
