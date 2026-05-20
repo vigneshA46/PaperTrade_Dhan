@@ -157,7 +157,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
-        "strike": ce_strike if name == "CE" else pe_strike,
+        "strike": ATM,
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
@@ -439,6 +439,8 @@ def mark_range():
     atm = float(bottom_line)
     print("ATM", atm)
 
+    ATM = calculate_atm(atm)
+    print("📌 ATM:", ATM)
     # =========================
     # OPTION CHAIN
     # =========================

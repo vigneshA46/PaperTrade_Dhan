@@ -158,7 +158,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
-        "strike": ce_strike if name == "CE" else pe_strike,
+        "strike": ATM,
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
@@ -368,7 +368,7 @@ def calculate_atm(price, step=50):
 
 
 def mark_range():
-    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,ce_row,pe_row,AngelCE,AngelPE
+    global top_line, bottom_line, CE_ID, PE_ID, ce_strike, pe_strike,today,ce_row,pe_row,AngelCE,AngelPE,ATM
 
     today = datetime.now(IST).strftime("%Y-%m-%d")
     idx = dhan.intraday_minute_data(
@@ -438,6 +438,9 @@ def mark_range():
 
     atm = float(bottom_line)
     print("ATM", atm)
+
+    ATM = calculate_atm(atm)
+    print("📌 ATM:", ATM)
 
     # =========================
     # OPTION CHAIN
