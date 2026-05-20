@@ -15,6 +15,7 @@ import paper_trade_niftyoption50_reentry_point as strategy5
 import delta_option_buying as strategy6
 import paper_trade_niftyoption8_no_reentry as strategy8
 import vwap_option_buying as strategy10
+import subprocess
 
 
 try:
@@ -74,20 +75,9 @@ def on_message(msg):
 
                 print("Starting Range Breakout Buying")
 
-                threading.Thread(
-                    target=lambda: __import__("range_breakout_buying"),
-                    daemon=True
-                ).start()
-
-                threading.Thread(
-                    target=lambda: __import__("range_breakout_buying_cum"),
-                    daemon=True
-                ).start()
-
-                threading.Thread(
-                    target=lambda: __import__("range_breakout_buying_points"),
-                    daemon=True
-                ).start()
+                subprocess.Popen(["python", "range_breakout_buying.py"])
+                subprocess.Popen(["python", "range_breakout_buying_cum.py"])
+                subprocess.Popen(["python", "range_breakout_buying_points.py"])
 
                 rb_buying = True
 
