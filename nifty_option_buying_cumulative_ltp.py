@@ -512,10 +512,10 @@ for strike, strike_data in option_data.items():
             }    # FINAL VALUES
 
 ce_strike = best_ce["strike"]
-CE_ID = best_ce["security_id"]
+CE_ID = str(best_ce["security_id"])
 
 pe_strike = best_pe["strike"]
-PE_ID = best_pe["security_id"]
+PE_ID = str(best_pe["security_id"])
 
 
 finder=FindInstrument()
@@ -568,7 +568,7 @@ ce_state = init_state()
 pe_state = init_state()
 
 ce_state["strike"] = float(ce_strike)
-pe_state["strike"] = float(ce_strike)
+pe_state["strike"] = float(pe_strike)
 
 combined_pnl=0
 

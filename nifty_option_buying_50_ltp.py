@@ -507,10 +507,10 @@ for strike, strike_data in option_data.items():
             }    # FINAL VALUES
 
 ce_strike = best_ce["strike"]
-CE_ID = best_ce["security_id"]
+CE_ID = str(best_ce["security_id"])
 
 pe_strike = best_pe["strike"]
-PE_ID = best_pe["security_id"]
+PE_ID = str(best_pe["security_id"])
 
 
 finder=FindInstrument()
@@ -520,7 +520,7 @@ pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
 
 
 AngelCE = finder.get_option("NIFTY" , int(ce_strike) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ce_strike) , "PE")
+AngelPE = finder.get_option("NIFTY" , int(pe_strike) , "PE")
 
 print("angel tokens" , AngelCE , AngelPE)
 
@@ -563,7 +563,7 @@ ce_state = init_state()
 pe_state = init_state()
 
 ce_state["strike"] = float(ce_strike)
-pe_state["strike"] = float(ce_strike)
+pe_state["strike"] = float(pe_strike)
 
 combined_pnl=0
 
@@ -874,11 +874,11 @@ def on_message(msg):
     token = str(msg["security_id"])
 
     # store LTP
-    if token == CE_ID:
+    if token == str(CE_ID):
         tick_exit_check("CE", token, ce_state, ltp)
         telemetry["ce_ltp"] = float(ltp or 0)
 
-    if token == PE_ID:
+    if token == str(PE_ID):
         tick_exit_check("PE", token, pe_state, ltp)
         telemetry["pe_ltp"] = float(ltp or 0)  
 
@@ -924,7 +924,6 @@ def on_message(msg):
 # START WS 
 # =====================
 
-
 TOKENS = [CE_ID , PE_ID]
 
 def on_tick(token, msg):
@@ -936,3 +935,29 @@ def on_tick(token, msg):
 
 for t in TOKENS:
     subscribe(t, on_tick)
+
+
+    
+"""
+instruments = [
+     (MarketFeed.NSE_FNO, CE_ID,MarketFeed.Quote),
+     (MarketFeed.NSE_FNO, PE_ID,MarketFeed.Quote)
+ ]
+feed = MarketFeed(dhan_context, instruments, "v2")
+
+
+
+while True:
+     try:
+
+         feed.run_forever()
+         msg = feed.get_data()
+
+         if msg:
+             if str(msg["security_id"]) in (CE_ID, PE_ID):
+                 on_message(msg)
+     except Exception as e:
+         print("WS ERROR:", e)
+         feed.run_forever()
+
+"""
