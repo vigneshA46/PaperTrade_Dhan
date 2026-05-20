@@ -70,8 +70,6 @@ def on_message(msg):
 
         if not rb_buying and now.hour == 9 and now.minute >= 31:
 
-            try:
-
                 print("Starting Range Breakout Buying")
 
                 import range_breakout_buying as strategy12
@@ -80,9 +78,6 @@ def on_message(msg):
 
                 rb_buying = True
 
-            except Exception as e:
-
-                print("RB BUYING ERROR:", e)
 
         if not rb_started and now.hour >= 10 and now.minute >= 1:
 
