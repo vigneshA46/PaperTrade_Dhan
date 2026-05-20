@@ -70,7 +70,7 @@ def on_message(msg):
         ist = pytz.timezone("Asia/Kolkata")
         now = datetime.now(ist)
 
-        if now.hour == 9 and now.minute >= 31:
+        if now.hour >= 9 and now.minute >= 31:
 
             print("Starting Range Breakout Buying")
 
