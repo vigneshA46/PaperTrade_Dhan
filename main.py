@@ -75,6 +75,8 @@ def on_message(msg):
                 print("Starting Range Breakout Buying")
 
                 import range_breakout_buying as strategy12
+                import range_breakout_buying_cum as strategy13
+                import range_breakout_buying_points as strategy14
 
                 rb_buying = True
 
