@@ -29,8 +29,6 @@ except Exception as e:
 
 rb_started = False
 rb_buying=False
-rb_pts=False
-rb_cum=False
 
 # collect all tokens
 ALL_TOKENS = set()
@@ -59,7 +57,7 @@ feed = MarketFeed(dhan_context, instruments, "v2")
 
 def on_message(msg):
 
-    global rb_started, rb_buying, rb_pts, rb_cum
+    global rb_started, rb_buying
 
     try:
 
@@ -70,34 +68,22 @@ def on_message(msg):
         ist = pytz.timezone("Asia/Kolkata")
         now = datetime.now(ist)
 
-        if now.hour >= 9 and now.minute >= 31:
+        if not rb_buying and now.hour >= 9 and now.minute >= 31:
 
-            print("Starting Range Breakout Buying")
+            try:
 
-            if not rb_pts:
-                rb_pts=True
-                try:
-                    import range_breakout_buying_points as strategy14
-                    print("14 LOADED")
-                except Exception as e:
-                    print(e)
+                print("Starting Range Breakout Buying")
 
-            if not rb_cum:
-                rb_cum=True
+                import range_breakout_buying as strategy12
+                import range_breakout_buying_cum as strategy13
+                import range_breakout_buying_points as strategy14
 
-                try:
-                    import range_breakout_buying_cum as strategy13
-                    print("13 LOADED")
-                except Exception as e:
-                    print(e)
+                rb_buying = True
 
-            if not rb_buying:
-                rb_buying=True
-                try:
-                    import range_breakout_buying as strategy12
-                    print("12 LOADED")
-                except Exception as e:
-                    print(e)
+            except Exception as e:
+
+                print("RB BUYING ERROR:", e)
+
         if not rb_started and now.hour >= 10 and now.minute >= 1:
 
                 try:
