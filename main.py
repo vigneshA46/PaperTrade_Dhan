@@ -69,6 +69,9 @@ def on_message(msg):
         now = datetime.now(ist)
 
         if not rb_buying and now.hour == 9 and now.minute >= 31:
+  
+            rb_buying = True
+            try:
 
                 print("Starting Range Breakout Buying")
 
@@ -76,8 +79,9 @@ def on_message(msg):
                 import range_breakout_buying_cum as strategy13
                 import range_breakout_buying_points as strategy14
 
-                rb_buying = True
+            except Exception as e:
 
+                print("RB BUYING ERROR:", e)
 
         if not rb_started and now.hour >= 10 and now.minute >= 1:
 
