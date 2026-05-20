@@ -139,9 +139,9 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
     year = expiry_date.strftime("%y")
 
     if name == "CE":
-        symbol = f"NIFTY{day}{month}{year}{ce_strike}{name}"
+        symbol = f"NIFTY{day}{month}{year}{int(ce_strike)}{name}"
     else:
-        symbol = f"NIFTY{day}{month}{year}{pe_strike}{name}"
+        symbol = f"NIFTY{day}{month}{year}{int(pe_strike)}{name}"
 
     expiry = expiry_date.strftime("%Y-%m-%d")
 
@@ -158,7 +158,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
-        "strike": ATM,
+        "strike": ce_strike if name == "CE" else pe_strike,
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
