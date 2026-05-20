@@ -1044,6 +1044,8 @@ while True:
 TOKENS = [str(CE_ID), str(PE_ID),str(INDEX_TOKEN)]
 
 def on_tick(token, msg):
+     
+    token = str(token)
     
     if token not in TOKENS:
         return  
