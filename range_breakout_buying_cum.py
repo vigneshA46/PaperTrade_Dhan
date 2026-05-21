@@ -896,7 +896,8 @@ def on_option_tick(msg):
                 )
 
               
-
+            state["lot"]+=1
+            
         entry = state["entry_price"]
 
         # SELL PnL

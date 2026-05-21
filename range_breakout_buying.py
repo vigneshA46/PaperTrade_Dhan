@@ -21,7 +21,7 @@ from find_instrument import FindInstrument
 # =========================
 
 DAY_TARGET = 5000
-DAY_SL = -2500
+DAY_SL = 3000
 DAY_STOP = False
 
 
