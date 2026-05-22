@@ -65,7 +65,7 @@ dhan = dhanhq(dhan_context)
 
 fno_df = load_fno_master()
 
-strategy_id = "29c30d22-628a-49d2-bd5e-11f32dc60f8c"
+strategy_id = "0f7e42ee-d6da-42ba-b1e3-05990a89754f"
 loop = asyncio.new_event_loop()
 
 def start_loop():
@@ -139,7 +139,11 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
     month = expiry_date.strftime("%b").upper()
     year = expiry_date.strftime("%y")
 
-    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    if name == "CE":
+        symbol = f"NIFTY{day}{month}{year}{ce_strike}{name}"
+    else:
+        symbol = f"NIFTY{day}{month}{year}{pe_strike}{name}"
+        
     expiry = expiry_date.strftime("%Y-%m-%d")
 
     return {
