@@ -70,7 +70,7 @@ def on_message(msg):
         ist = pytz.timezone("Asia/Kolkata")
         now = datetime.now(ist)
 
-        if not rb_buying and now.hour >= 9 and now.minute >= 31:
+        if not rb_buying and now.hour >= 9 and now.minute >= 1:
 
             try:
 
