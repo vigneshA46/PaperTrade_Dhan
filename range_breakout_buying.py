@@ -46,7 +46,7 @@ TRADE_START = dtime(9, 31)
 TRADE_END   = dtime(15, 20)
 
 LOT_QTY = 1
-DAY_TARGET = 38
+#DAY_TARGET = 38
 LOT = 1
 LOTSIZE= 65
 
