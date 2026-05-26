@@ -556,6 +556,8 @@ def mark_range():
 
 def on_tick_index(msg):
 
+    global pe_state , ce_state , bottom_line , top_line
+
     candle = idx_builder.process_tick(msg)
     ltp = float(msg["LTP"])
 
@@ -754,7 +756,23 @@ def on_option_tick(msg):
     if state["position"]:
 
 
-        current_mtm = telemetry["pnl"] * LOTSIZE
+
+        ce_running = 0
+        pe_running = 0
+
+        if state == ce_state and ce_state["position"]:
+            ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) 
+
+        if state == pe_state and pe_state["position"]:
+            pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"])
+
+        if ce_state["position"] or pe_state["position"]:
+            telemetry["status"] = 'RUNNING'
+
+        
+        current_mtm = (ce_running + pe_running + telemetry["pnl"]) * LOTSIZE
+
+
 
         # =========================
         # DAY TARGET HIT

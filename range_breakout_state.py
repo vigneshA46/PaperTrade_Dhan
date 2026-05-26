@@ -446,8 +446,42 @@ def on_tick_index(msg):
     #msg["last_price"] = float(msg["LTP"]) * 3.67
     #msg["LTP"] = msg["last_price"]
 
+    global top_line , bottom_line ,pe_state , ce_state
+
+    ltp = float(msg.get("LTP", 0))
+
 
     candle = idx_builder.process_tick(msg)
+
+    if pe_state["position"] and ltp < top_line:
+        print("❌ PE EXIT (Index crossed below top line)")
+
+        pe_state["force_exit"] = True
+        pe_state["exit_reason"] = "INDEX_EXIT"
+
+    # CE EXIT → close above bottom line
+    if ce_state["position"] and ltp > bottom_line:
+        print("❌ CE EXIT (Index crossed above bottom line)")
+
+        ce_state["force_exit"] = True
+        ce_state["exit_reason"] = "INDEX_EXIT"
+
+
+    # =========================================================
+    # 🔁 REARM LOGIC
+    # =========================================================
+
+    # PE rearm → price back below top_line
+    if pe_state["rearm_required"] and ltp < top_line:
+        print("🔁 PE REARMED")
+        pe_state["rearm_required"] = False
+
+    # CE rearm → price back above bottom_line
+    if ce_state["rearm_required"] and ltp > bottom_line:
+        print("🔁 CE REARMED")
+        ce_state["rearm_required"] = False
+
+
 
     if candle:
         on_index_candle(msg["security_id"], datetime.now(IST), candle)
@@ -496,32 +530,7 @@ def on_index_candle(token, timestamp, candle):
     # =========================================================
 
     # PE EXIT → close below top line
-    if pe_state["position"] and c < top_line:
-        print("❌ PE EXIT (Index crossed below top line)")
 
-        pe_state["force_exit"] = True
-        pe_state["exit_reason"] = "INDEX_EXIT"
-
-    # CE EXIT → close above bottom line
-    if ce_state["position"] and c > bottom_line:
-        print("❌ CE EXIT (Index crossed above bottom line)")
-
-        ce_state["force_exit"] = True
-        ce_state["exit_reason"] = "INDEX_EXIT"
-
-    # =========================================================
-    # 🔁 REARM LOGIC
-    # =========================================================
-
-    # PE rearm → price back below top_line
-    if pe_state["rearm_required"] and c < top_line:
-        print("🔁 PE REARMED")
-        pe_state["rearm_required"] = False
-
-    # CE rearm → price back above bottom_line
-    if ce_state["rearm_required"] and c > bottom_line:
-        print("🔁 CE REARMED")
-        ce_state["rearm_required"] = False
 
     # =========================================================
     # 🚨 SIGNAL GENERATION

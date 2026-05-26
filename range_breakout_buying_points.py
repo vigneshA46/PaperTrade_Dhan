@@ -765,26 +765,6 @@ def on_option_tick(msg):
 
         current_mtm = telemetry["pnl"] * LOTSIZE
 
-
-
-        # =========================
-        # DAY SL HIT
-        # =========================
-
-        if current_mtm <= DAY_SL:
-
-            print(f"🛑 DAY SL HIT : {current_mtm}")
-
-            DAY_STOP = True
-
-            ce_state["trading_disabled"] = True
-            pe_state["trading_disabled"] = True
-
-            state["force_exit"] = True
-            state["exit_reason"] = "DAY_SL"
-
-        
-
         state["entry_price"] = float(state["entry_price"])
         state["sl"] = float(state["sl"])
 

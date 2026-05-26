@@ -61,41 +61,6 @@ def on_message(msg):
 
         publish(token, msg)
 
-        ist = pytz.timezone("Asia/Kolkata")
-        now = datetime.now(ist)
-
-        if not rb_buying and now.hour >= 9 and now.minute >= 31:
-
-            try:
-
-                print("Starting Range Breakout Buying")
-
-                import range_breakout_buying as strategy12
-                import range_breakout_buying_cum as strategy13
-                import range_breakout_buying_points as strategy14
-
-                rb_buying = True
-
-            except Exception as e:
-
-                print("RB BUYING ERROR:", e)
-
-        if not rb_started and now.hour >= 10 and now.minute >= 1:
-
-                try:
-
-                    import range_breakout_state as strategy9
-
-                    print("Starting Range Breakout Strategy")
-
-                    threading.Thread(target=strategy9.start_strategy,daemon=True).start()
-
-                    rb_started = True
-
-                except Exception as e:
-
-                    print("RB STATE ERROR:", e)
-
     except Exception as e:
 
         print("ON MESSAGE ERROR:", e)
