@@ -125,7 +125,7 @@ def group_users_by_broker(deployments):
     return grouped
 
 
-def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot,users):
+def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot,users , strike=ATM):
 
     if name == "CE":
         row = AngelCE
@@ -158,7 +158,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
-        "strike": ATM,
+        "strike": strike,
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
@@ -739,7 +739,8 @@ def on_option_tick(msg):
                     0,
                     telemetry["pnl"],
                     state["lot"],
-                    users
+                    users,
+                    strike=str(ce_strike) if leg_name == "CE" else str(pe_strike)
                 )
             )
         )
@@ -803,7 +804,8 @@ def on_option_tick(msg):
                         final_pnl,
                         telemetry["pnl"],
                         state["lot"],
-                        users
+                        users,
+                        strike=str(ce_strike) if leg_name == "CE" else str(pe_strike)
                     )
                 )
             )
@@ -858,7 +860,8 @@ def on_option_tick(msg):
                         final_pnl,
                         telemetry["pnl"],
                         state["lot"],
-                        users
+                        users,
+                        strike=str(ce_strike) if leg_name == "CE" else str(pe_strike)
                     )
                 )
             )
@@ -921,7 +924,8 @@ def on_option_tick(msg):
                         final_pnl,
                         telemetry["pnl"],
                         state["lot"],
-                        users
+                        users,
+                        strike=str(ce_strike) if leg_name == "CE" else str(pe_strike)
                     )
                 )
             )

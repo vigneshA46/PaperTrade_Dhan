@@ -314,11 +314,28 @@ def check_mtm_and_kill_switch():
     if combined_exit_active:
         return
 
-    total_pnl = ce_state["pnl"] + pe_state["pnl"]
+    ce_ltp = telemetry.get("ce_ltp", 0)
+    pe_ltp = telemetry.get("pe_ltp", 0)
+
+    ce_running = 0
+    pe_running = 0
+
+    if ce_state["position"]:
+        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE 
+
+    if pe_state["position"]:
+        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE
+
+
+    total_pnl = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
     combined_pnl = total_pnl
 
-    telemetry["ce_pnl"] = ce_state["pnl"]
-    telemetry["pe_pnl"] = pe_state["pnl"]
+    ce_total = ce_state["pnl"] + ce_running
+    pe_total = pe_state["pnl"] + pe_running
+
+
+    telemetry["ce_pnl"] = float(ce_total)
+    telemetry["pe_pnl"] = float(pe_total)
     telemetry["pnl"] = combined_pnl
 
 
@@ -566,11 +583,9 @@ def on_message(msg):
     # UPDATE PNL TICKWISE
     # =========================
     if token == str(CE_ID):
-        update_pnl_tickwise(ce_state, ltp)
         telemetry["ce_ltp"] = ltp
 
     elif token == str(PE_ID):
-        update_pnl_tickwise(pe_state, ltp)
         telemetry["pe_ltp"] = ltp
 
 
@@ -585,7 +600,7 @@ def on_message(msg):
 
             exit_price = ltp
 
-            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE
 
             ce_state["pnl"] += pnl
             combined_pnl += pnl
@@ -615,7 +630,7 @@ def on_message(msg):
 
             exit_price = ltp
 
-            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE
 
             pe_state["pnl"] += pnl
             combined_pnl += pnl
