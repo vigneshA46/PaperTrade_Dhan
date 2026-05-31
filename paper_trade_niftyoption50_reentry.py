@@ -127,6 +127,8 @@ def group_users_by_broker(deployments):
 
     return grouped
 
+
+
 def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,users):
 
     if name == "CE":
