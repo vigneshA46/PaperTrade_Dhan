@@ -128,6 +128,8 @@ def group_users_by_broker(deployments):
 
 def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,users , strike):
 
+    strike = int(float(strike))
+    
     if name == "CE":
         row = AngelCE
     else:
@@ -898,12 +900,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("50 reentry point CE",token)
+            print("50 reentry point CE LTP",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("50 reentry point PE",token)
+            print("50 reentry point PE LTP",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 

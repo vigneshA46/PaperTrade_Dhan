@@ -130,6 +130,8 @@ def group_users_by_broker(deployments):
 
 def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,users,  strike):
 
+    strike = int(float(strike))
+    
     if name == "CE":
         row = AngelCE
     else:
@@ -144,6 +146,10 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
     symbol = f"NIFTY{day}{month}{year}{strike}{name}"
     expiry = expiry_date.strftime("%Y-%m-%d")
 
+    print("Building payload with symbol:", symbol)
+    print("Payload details - Name:", name, "Side:", side, "Token:", token, "Reason:", reason, "Event Type:", event_type, "LTP:", ltp, "PnL:", pnl, "Cum PnL:", cum_pnl, "Lot:", lot, "Strike:", strike)
+
+
     return {
         "strategy_id": COMMON_ID,
         "users": users,
@@ -154,7 +160,7 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
         "token": int(row["token"]),
         "event_type": event_type,
         "leg_name": name,
-        "symbol": symbol,
+        "symbol": str(symbol),
         "exchange": "NFO",
         "expiry":expiry,
         "strike": str(strike),
