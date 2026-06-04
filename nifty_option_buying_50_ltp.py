@@ -142,7 +142,7 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
     year = expiry_date.strftime("%y")
 
     if name == "CE":
-        symbol = f"NIFTY{day}{month}{year}{ce_trike}{name}"
+        symbol = f"NIFTY{day}{month}{year}{ce_strike}{name}"
     else:
         symbol = f"NIFTY{day}{month}{year}{pe_strike}{name}"
         
