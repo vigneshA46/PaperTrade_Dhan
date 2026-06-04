@@ -11,13 +11,14 @@ import threading
 
 import paper_trade_niftyoption50_no_reentry as strategy1
 
+import nifty_option_buying_50_ltp as strategy15
+
 import paper_trade_niftyoption50_reentry as strategy2
 import paper_trade_niftyoption35_reentry as strategy3
 import paper_trade_niftyoption35_reentry_point as strategy4
 import paper_trade_niftyoption50_reentry_point as strategy5
 import Nifty_option_buying3k as strategy9
 
-import nifty_option_buying_50_ltp as strategy15
 import nifty_option_buying_cumulative_ltp as straegy16
 
 #import delta_option_buying as strategy6
