@@ -19,6 +19,7 @@ import asyncio
 from find_instrument import FindInstrument
 
 
+
 vwap_manager = VWAPManager()
 
 ce_strike = None
@@ -31,6 +32,8 @@ pe_strike = None
 COMMON_ID = '136b0559-76dc-435c-bb08-3e6a584a46d0'
 strategy_id = '136b0559-76dc-435c-bb08-3e6a584a46d0'
 trade_log_queue = Queue()
+
+finder = FindInstrument()
 
 
 
@@ -171,13 +174,14 @@ def build_payload(name, side, token , reason,event_type,ltp,pnl,cum_pnl,lot,user
     else:
         row = AngelPE
 
+
     expiry_date = ce_row["SM_EXPIRY_DATE"]
 
     day = expiry_date.strftime("%d")
     month = expiry_date.strftime("%b").upper()
     year = expiry_date.strftime("%y")
 
-    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    symbol = f"NIFTY{day}{month}{year}{strike}{name}"
     expiry = expiry_date.strftime("%Y-%m-%d")
 
     return {
@@ -426,7 +430,7 @@ from datetime import time as dtime
 
 
 def check_mtm_and_kill_switch():
-    global combined_exit_active , combined_pnl
+    global combined_exit_active , combined_pnl , CE_ID , PE_ID
 
     if combined_exit_active:
         return
@@ -444,12 +448,12 @@ def check_mtm_and_kill_switch():
         pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE
 
 
-    combined_pnl = total_pnl
 
     ce_total = ce_state["pnl"] + ce_running
     pe_total = pe_state["pnl"] + pe_running
 
     total_pnl = ce_total + pe_total
+    combined_pnl = total_pnl
     
     telemetry["ce_pnl"] = float(ce_total)
     telemetry["pe_pnl"] = float(pe_total)
@@ -467,18 +471,22 @@ def check_mtm_and_kill_switch():
         if ce_state["position"]:
             print(f"🔴 CE FORCE EXIT | TOKEN: {CE_ID} | LTP: {telemetry.get('ce_ltp')} | TOTAL PNL: {ce_state['pnl']:.2f}")
 
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+
             run_async(
                 emit_signal(
                     build_payload(
-                        name,
+                        "CE",
                         "SELL",
-                        token,
+                        str(CE_ID),
                         "PROFIT EXIT",
                         "EXIT",
-                        ltp,
-                        pnl,
+                        str(telemetry.get('ce_ltp')),
+                        ce_state["pnl"],
                         combined_pnl,
-                        state["lot"],
+                        ce_state["lot"],
                         users,
                         strike = ce_strike
                     )
@@ -507,18 +515,22 @@ def check_mtm_and_kill_switch():
         if pe_state["position"]:
             print(f"🔴 PE FORCE EXIT | TOKEN: {PE_ID} | LTP: {telemetry.get('pe_ltp')} | TOTAL PNL: {pe_state['pnl']:.2f}")
 
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+
             run_async(
                 emit_signal(
                     build_payload(
-                        name,
+                        "PE",
                         "SELL",
-                        token,
+                        str(PE_ID),
                         "PROFIT EXIT",
                         "EXIT",
-                        ltp,
-                        pnl,
+                        str(telemetry.get('pe_ltp')),
+                        pe_state["pnl"],
                         combined_pnl,
-                        state["lot"],
+                        pe_state["lot"],
                         users,
                         strike = pe_strike
                     )
@@ -569,10 +581,9 @@ def handle_leg(name, token, candle, state, ltp, vwap):
 
             exit_price = ltp
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE
 
             state["pnl"] += pnl
-            combined_pnl += pnl
 
             deployments = get_today_deployments()
             users = group_users_by_broker(deployments)
@@ -636,10 +647,13 @@ def handle_leg(name, token, candle, state, ltp, vwap):
         if close < vwap:
             exit_price = ltp
 
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
+            pnl = (exit_price - state["entry_price"]) * LOTSIZE
 
             state["pnl"] += pnl
-            combined_pnl += pnl
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
 
             print(f"🔴 CE VWAP CLOSE EXIT | {ltp} < {vwap} | PNL: {pnl:.2f}")
 
@@ -663,8 +677,8 @@ def handle_leg(name, token, candle, state, ltp, vwap):
 
             log_trade_event(
                 event_type="EXIT",
-                leg_name="CE",
-                token=CE_ID,
+                leg_name=name,
+                token=token,
                 symbol=SYMBOL,
                 side="SELL",
                 lot=state["lot"],
@@ -695,7 +709,7 @@ def handle_leg(name, token, candle, state, ltp, vwap):
     # =========================
     # ENTRY EXECUTION
     # =========================
-    if state["entry_signal"] and not state["position"]:
+    if state["entry_signal"] and not state["position"] and not state["trading_disabled"]:
 
         entry_price = ltp
 
@@ -779,14 +793,17 @@ def on_message(msg):
             pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE
 
             ce_state["pnl"] += pnl
-            combined_pnl += pnl
+            #combined_pnl += pnl
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
 
             print(f"🔴 CE VWAP TICK EXIT | {ltp} < {vwap} | PNL: {pnl:.2f}")
 
             run_async(
                 emit_signal(
                     build_payload(
-                        name,
+                        "CE",
                         "SELL",
                         token,
                         "VWAP EXIT",
@@ -794,7 +811,7 @@ def on_message(msg):
                         ltp,
                         pnl,
                         combined_pnl,
-                        state["lot"],
+                        ce_state["lot"],
                         users,
                         strike = ce_strike
                     )
@@ -827,14 +844,17 @@ def on_message(msg):
             pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE
 
             pe_state["pnl"] += pnl
-            combined_pnl += pnl
+            #combined_pnl += pnl
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
 
             print(f"🔴 PE VWAP TICK EXIT | {ltp} < {vwap} | PNL: {pnl:.2f}")
 
             run_async(
                 emit_signal(
                     build_payload(
-                        name,
+                        "PE",
                         "SELL",
                         token,
                         "TIME EXIT",
@@ -842,7 +862,7 @@ def on_message(msg):
                         ltp,
                         pnl,
                         combined_pnl,
-                        state["lot"],
+                        pe_state["lot"],
                         users,
                         strike = pe_strike
                     )
@@ -962,6 +982,9 @@ pe_strike = atm + 200
 print(ce_strike ,"CE strike")
 print(pe_strike , "PE strike")
 
+
+AngelCE = finder.get_option("NIFTY" , int(ce_strike) , "CE")
+AngelPE = finder.get_option("NIFTY" , int(pe_strike) , "PE")
 
 ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
 pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
