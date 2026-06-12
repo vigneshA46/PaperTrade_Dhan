@@ -67,7 +67,7 @@ dhan_context = DhanContext(client_id, access_token)
 dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
-strategy_id = "4ba38c55-fa43-4fa9-b7b3-e26df8d45b90"
+strategy_id = "24924d3f-492b-4f03-8ee3-20111b275fdf"
 
 loop = asyncio.new_event_loop()
 
