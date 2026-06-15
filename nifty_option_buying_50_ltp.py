@@ -40,7 +40,7 @@ SYMBOL = "NIFTY"
 
 load_dotenv()
 
-STRATEGY_NAME = "NIFTY_OPTION_BUYING_50_reentry"
+STRATEGY_NAME = "NIFTY_OPTION_BUYING_35_reentry"
 client_id = os.getenv("CLIENT_ID")
 access_token = get_access_token()
 
@@ -50,8 +50,8 @@ IST = pytz.timezone("Asia/Kolkata")
 TRADE_START = dtime(9, 16)
 TRADE_END   = dtime(15, 20)
 
-CE_TARGET_POINTS = 50
-PE_TARGET_POINTS = 50
+CE_TARGET_POINTS = 35
+PE_TARGET_POINTS = 35
 LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
@@ -398,7 +398,7 @@ def init_state():
 
 wait_for_start()
 
-print("\n🚀 NIFTY OPTION BUYING 50 LTP STARTED\n")
+print("\n🚀 NIFTY OPTION BUYING 35 LTP STARTED\n")
 
 threading.Thread(target=trade_log_worker, daemon=True).start()
 
@@ -767,7 +767,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     if ce_state["moment"] >= CE_TARGET_POINTS and not ce_state["trading_disabled"]:
 
-        print("🏁 CE 50 points hit")
+        print("🏁 CE 35 points hit")
         deployments = get_today_deployments()
 
         users = group_users_by_broker(deployments)
@@ -814,7 +814,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
     if pe_state["moment"] >= PE_TARGET_POINTS and not pe_state["trading_disabled"]:
 
-        print("🏁 PE 50 points hit")
+        print("🏁 PE 35 points hit")
 
         deployments = get_today_deployments()
 
@@ -900,12 +900,12 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("50 reentry point CE LTP",token)
+            print("35 reentry point CE LTP",token)
             print(candle)
             handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("50 reentry point PE LTP",token)
+            print("35 reentry point PE LTP",token)
             print(candle)
             handle_leg("PE", token, candle, pe_state, ltp)
 
