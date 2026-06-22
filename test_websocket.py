@@ -24,7 +24,7 @@ dhan = dhanhq(dhan_context)
 
 # Structure for subscribing is (exchange_segment, "security_id", subscription_type)
 
-instruments = [(MarketFeed.IDX, "5024", MarketFeed.Quote),   # Ticker - Ticker Data
+instruments = [(MarketFeed.NSE, "4306", MarketFeed.Quote),   # Ticker - Ticker Data
 ]
 
 version = "v2"          # Mention Version and set to latest version 'v2'
