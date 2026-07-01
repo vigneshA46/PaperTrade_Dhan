@@ -388,7 +388,7 @@ def init_state():
         "trading_disabled": False,
         "entry_price": None,
         "entry_time": None,
-        "lot": 1,
+        "lot": 2,
         "pnl": 0.0,
         "symbol": None,
         "rearm_required": False,

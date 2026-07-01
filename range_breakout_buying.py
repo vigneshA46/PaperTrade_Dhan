@@ -1046,7 +1046,6 @@ instruments = [
     (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
     (MarketFeed.NSE_FNO, str(PE_ID), MarketFeed.Quote),
     (MarketFeed.IDX, str(INDEX_TOKEN), MarketFeed.Quote),
-
 ]
 
 TOKENS = [str(CE_ID), str(PE_ID),str(INDEX_TOKEN)]

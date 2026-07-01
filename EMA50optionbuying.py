@@ -2,6 +2,7 @@ import time
 import pytz
 import requests
 from datetime import datetime, time as dtime
+from datetime import timedelta
 from dotenv import load_dotenv
 import os
 from dhanhq import MarketFeed
@@ -17,6 +18,13 @@ import asyncio
 from find_instrument import FindInstrument
 from option_chain_cache import set_option_chain, get_option_chain
 
+
+combined_pnl = 0
+
+DAILY_TARGET = 3000
+DAILY_STOPLOSS = -3000
+
+strategy_stopped = False
 
 # =========================
 # CONFIG
@@ -36,7 +44,7 @@ ATM = None
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
-COMMON_ID = "24924d3f-492b-4f03-8ee3-20111b275fdf"
+COMMON_ID = "cb5a60af-883a-4005-b203-f908b23cfdc3"
 SYMBOL = "NIFTY"
 
 load_dotenv()
@@ -51,9 +59,9 @@ IST = pytz.timezone("Asia/Kolkata")
 TRADE_START = dtime(9, 16)
 TRADE_END   = dtime(15, 20)
 
-CE_TARGET_POINTS = 50
-TARGET_POINTS = 50
-PE_TARGET_POINTS = 50
+CE_TARGET_POINTS = 25
+TARGET_POINTS = 47
+PE_TARGET_POINTS = 25
 LOTSIZE = 65
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
@@ -67,7 +75,7 @@ dhan_context = DhanContext(client_id, access_token)
 dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
-strategy_id = "24924d3f-492b-4f03-8ee3-20111b275fdf"
+strategy_id = "cb5a60af-883a-4005-b203-f908b23cfdc3"
 
 loop = asyncio.new_event_loop()
 
@@ -208,37 +216,6 @@ def logtradeleg(strategyid, leg, symbol, strike_price, date, token):
 
 
 
-def get_first_candle_mark(security_id):
-
-    today = datetime.now(IST).strftime("%Y-%m-%d")
-   
-
-    idx= dhan.intraday_minute_data(
-        security_id=security_id,
-        exchange_segment="NSE_FNO",
-        instrument_type="OPTIDX",
-        from_date=today,
-        to_date=today
-    )
-    print("Today :",type(today),today)
-
-    data = idx.get("data", {})
-    closes = data.get("close", [])
-    timestamps = data.get("timestamp", [])
-
-    for i in range(len(timestamps)):
-        ts = datetime.fromtimestamp(timestamps[i], IST)  
-
-        if ts.hour == 9 and ts.minute == 15:
-            mark = float(closes[i])
-            print(f"📍 HIST MARK {security_id} @ {mark}")
-            return mark
-
-    print("❌ 09:15 candle not found")
-    return None
-
-
-
 def log_event(leg_name, token, action, price, remark=""):
     payload = {
         "run_id": COMMON_ID,
@@ -358,25 +335,395 @@ t = threading.Thread(target=telemetry_broadcaster, daemon=True)
 t.start()
 
 
+def get_ema_bootstrap_window(minutes=51):
+
+    now = datetime.now(IST)
+
+    end_time = now.replace(second=0, microsecond=0)
+
+    start_time = end_time - timedelta(minutes=minutes)
+
+    return start_time, end_time
+
+
+def load_history(security_id):
+
+    start_time, end_time = get_ema_bootstrap_window()
+
+    data = dhan.intraday_minute_data(
+        security_id=security_id,
+        exchange_segment="NSE_FNO",
+        instrument_type="OPTIDX",
+        from_date=start_time.strftime("%Y-%m-%d"),
+        to_date=end_time.strftime("%Y-%m-%d")
+    )
+
+    candles = []
+
+    raw = data.get("data", {})
+
+    opens = raw.get("open", [])
+    highs = raw.get("high", [])
+    lows = raw.get("low", [])
+    closes = raw.get("close", [])
+    volumes = raw.get("volume", [])
+    timestamps = raw.get("timestamp", [])
+
+    for i in range(len(timestamps)):
+
+        ts = datetime.fromtimestamp(timestamps[i], IST)
+
+        if start_time <= ts <= end_time:
+
+            candles.append({
+                "timestamp": timestamps[i],
+                "open": opens[i],
+                "high": highs[i],
+                "low": lows[i],
+                "close": closes[i],
+                "volume": volumes[i]
+            })
+
+    return candles[-51:]
+
+
 def get_next_expiry():
     """
     Returns current/next NIFTY expiry date
     directly from Dhan expiry list API
     """
-
     expiries = dhan.expiry_list(
         under_security_id=13,
         under_exchange_segment="IDX_I"
     )
-
     expiry_list = expiries["data"]
-
     # first expiry is always nearest expiry
     next_expiry = expiry_list["data"][0]
 
     return next_expiry
 
 
+
+def detect_touch(state, candle):
+
+    ema = state["ema50"]
+
+    if ema is None:
+        return
+
+    high = float(candle["high"])
+    low = float(candle["low"])
+
+    if low <= ema <= high:
+
+        state["touch_armed"] = True
+
+        print("✅ EMA TOUCH")
+
+
+
+def update_ema(state, candle):
+
+    state["candles"].append(candle)
+    if len(state["candles"]) > 200:
+        state["candles"].pop(0)
+    closes = [
+        float(c["close"])
+        for c in state["candles"]
+    ]
+    state["ema50"] = calculate_ema(closes)
+    return state["ema50"]
+
+
+def handle_leg(name, token, candle, state, ltp):
+    global combined_pnl
+
+    now = datetime.now(IST).time()
+
+    close = float(candle["close"])
+
+    avg = (
+        float(candle["open"])
+        + float(candle["high"])
+        + float(candle["low"])
+        + float(candle["close"])
+    ) / 4
+
+    # =========================
+    # TIME EXIT
+    # =========================
+    if now >= TRADE_END:
+
+        telemetry["status"] = "CLOSED"
+
+        if state["position"]:
+
+            exit_price = ltp
+
+            pnl = (
+                exit_price - state["entry_price"]
+            ) * LOTSIZE * state["lot"]
+
+            state["pnl"] += pnl
+            combined_pnl += pnl
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        name,
+                        "SELL",
+                        token,
+                        "time_exit",
+                        "EXIT",
+                        ltp,
+                        pnl,
+                        combined_pnl,
+                        state["lot"],
+                        users,
+                        state["strike"]
+                    )
+                )
+            )
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name=name,
+                token=token,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=state["lot"],
+                price=exit_price,
+                reason="TIME EXIT",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            print(f"⏰ {name} TIME EXIT @ {exit_price}")
+
+            state["position"] = False
+
+        state["trading_disabled"] = True
+        return
+
+    # =========================
+    # STOP TRADING
+    # =========================
+    if state["trading_disabled"]:
+        return
+
+    # =========================
+    # EMA UPDATE
+    # =========================
+    state["candles"].append(candle)
+
+    if len(state["candles"]) > 100:
+        state["candles"].pop(0)
+
+    closes = [float(c["close"]) for c in state["candles"]]
+
+    state["ema50"] = calculate_ema(closes, 50)
+
+    if state["ema50"] is None:
+        return
+
+    ema50 = state["ema50"]
+
+    # =========================
+    # EMA TOUCH DETECTION
+    # =========================
+    if (
+        candle["low"] <= ema50 <= candle["high"]
+    ):
+
+        if not state["ema_touched"]:
+
+            state["ema_touched"] = True
+
+            print(
+                f"📍 {name} EMA TOUCH | EMA={round(ema50,2)}"
+            )
+
+    # =========================
+    # TARGET EXIT
+    # =========================
+    if state["position"]:
+
+        if ltp >= state["entry_price"] + TARGET_POINTS:
+
+            exit_price = ltp
+
+            pnl = (
+                exit_price - state["entry_price"]
+            ) * LOTSIZE * state["lot"]
+
+            state["pnl"] += pnl
+            combined_pnl += pnl
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        name,
+                        "SELL",
+                        token,
+                        "target_hit",
+                        "EXIT",
+                        ltp,
+                        pnl,
+                        combined_pnl,
+                        state["lot"],
+                        users,
+                        state["strike"]
+                    )
+                )
+            )
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name=name,
+                token=token,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=state["lot"],
+                price=exit_price,
+                reason="TARGET HIT",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            print(f"🎯 {name} TARGET HIT @ {exit_price}")
+
+            state["position"] = False
+            state["entry_price"] = None
+            state["ema_touched"] = False
+
+            return
+
+    # =========================
+    # EMA EXIT
+    # =========================
+    if state["position"]:
+
+        if close < ema50:
+
+            exit_price = ltp
+
+            pnl = (
+                exit_price - state["entry_price"]
+            ) * LOTSIZE * state["lot"]
+
+            state["pnl"] += pnl
+            combined_pnl += pnl
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        name,
+                        "SELL",
+                        token,
+                        "ema_exit",
+                        "EXIT",
+                        ltp,
+                        pnl,
+                        combined_pnl,
+                        state["lot"],
+                        users,
+                        state["strike"]
+                    )
+                )
+            )
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name=name,
+                token=token,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=state["lot"],
+                price=exit_price,
+                reason="EMA EXIT",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            print(
+                f"❌ {name} EMA EXIT | Close={close} EMA={round(ema50,2)}"
+            )
+
+            state["position"] = False
+            state["entry_price"] = None
+            state["ema_touched"] = False
+
+            return
+
+    # =========================
+    # ENTRY
+    # =========================
+    if (
+        not state["position"]
+        and state["ema_touched"]
+    ):
+
+        if (
+            close > ema50
+            and avg > ema50
+        ):
+
+            entry_price = ltp
+
+            state["entry_price"] = entry_price
+            state["entry_time"] = datetime.now(IST).isoformat()
+            state["position"] = True
+
+            # require fresh touch after entry
+            state["ema_touched"] = False
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        name,
+                        "BUY",
+                        token,
+                        "entry",
+                        "ENTRY",
+                        ltp,
+                        state["pnl"],
+                        combined_pnl,
+                        state["lot"],
+                        users,
+                        state["strike"]
+                    )
+                )
+            )
+
+            log_trade_event(
+                event_type="ENTRY",
+                leg_name=name,
+                token=token,
+                symbol=SYMBOL,
+                side="BUY",
+                lot=state["lot"],
+                price=entry_price,
+                reason="EMA50 ENTRY",
+                pnl=state["pnl"],
+                cum_pnl=combined_pnl
+            )
+
+            print(
+                f"🟢 BUY {name} @ {entry_price} | EMA={round(ema50,2)}"
+            )
+    
 
 next_expiry = get_next_expiry()
 
@@ -386,16 +733,39 @@ def init_state():
         "marked": None,
         "position": False,
         "trading_disabled": False,
+
         "entry_price": None,
         "entry_time": None,
+
         "lot": 1,
         "pnl": 0.0,
-        "symbol": None,
-        "rearm_required": False,
-        "moment":0.0,
-        "strike":None
 
+        "symbol": None,
+        "strike": None,
+
+        "rearm_required": False,
+
+        # EMA strategy
+        "ema50": None,
+        "ema_touched": False,
+        "candles": []
     }
+
+
+
+def calculate_ema(closes, period=50):
+
+    if len(closes) < period:
+        return None
+
+    multiplier = 2 / (period + 1)
+
+    ema = sum(closes[:period]) / period
+
+    for close in closes[period:]:
+        ema = ((close - ema) * multiplier) + ema
+
+    return ema
 
 # =========================
 # START
@@ -569,301 +939,38 @@ logtradeleg(
     PE_ID
 )
 
+start_time, end_time = get_ema_bootstrap_window()
 
 
+print(start_time)
+print(end_time)
 
-# =========================
-# STATE
-# =========================
+ce_history = load_history(CE_ID)
+pe_history = load_history(PE_ID)
+
+print("CE History:", len(ce_history))
+print("PE History:", len(pe_history))
 
 ce_state = init_state()
 pe_state = init_state()
 
-ce_state["strike"] = float(ce_strike)
-pe_state["strike"] = float(pe_strike)
+ce_state["candles"] = ce_history.copy()
+pe_state["candles"] = pe_history.copy()
 
-combined_pnl=0
+ce_closes = [float(c["close"]) for c in ce_state["candles"]]
+pe_closes = [float(c["close"]) for c in pe_state["candles"]]
 
-ce_state["marked"] = get_first_candle_mark(CE_ID)
-pe_state["marked"] = get_first_candle_mark(PE_ID)
+ce_state["ema50"] = calculate_ema(ce_closes)
+pe_state["ema50"] = calculate_ema(pe_closes)
 
+print("CE EMA50:", ce_state["ema50"])
+print("PE EMA50:", pe_state["ema50"])
 
-# =========================
-# STRATEGY ENGINE
-# =========================
+ce_state["strike"] = ce_strike
+pe_state["strike"] = pe_strike
 
-
-def handle_leg(name, token, candle, state, ltp):
-    global combined_pnl
-
-    now = datetime.now(IST).time()
-    close = candle["close"]
-
-    avg = (candle["open"] + candle["high"] +
-           candle["low"] + candle["close"]) / 4
-
-    timestamp = candle["timestamp"]
-
-    # =========================
-    # TIME EXIT (15:20)
-    # =========================
-    if now >= TRADE_END:
-        telemetry["status"] = 'CLOSED'
-
-        if state["position"]:
-            exit_price = ltp
-
-            pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
-
-            state["pnl"] += pnl
-            combined_pnl += pnl
-
-            deployments = get_today_deployments()
-
-            users = group_users_by_broker(deployments)
-
-            print("FORMATTED USERS:", users)
-
-
-            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl,combined_pnl,state["lot"],users , state["strike"])))
-            log_trade_event(
-                
-                event_type="EXIT",
-                leg_name=name,
-                token=token,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=state["lot"],
-                price=exit_price,
-                reason="TIME EXIT",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-            state["position"] = False
-
-
-        state["trading_disabled"] = True
-        return
-
-    # =========================
-    # STOP TRADING
-    # =========================
-    if state["trading_disabled"]:
-        return
-
-    # =============================
-    # ENTRY SIGNAL AND EXECUTION
-    # =============================
-    if not state["position"] and not state["rearm_required"]:
-
-        if close > state["marked"] and avg > state["marked"] and avg < close:
-
-            entry_price = ltp   
-
-            state["entry_price"] = entry_price
-            state["entry_time"] = datetime.now(IST).isoformat()
-
-            state["position"] = True
-
-            deployments = get_today_deployments()
-
-            users = group_users_by_broker(deployments)
-
-            print("FORMATTED USERS:", users)
-
-
-            print("🟢 BUY", name, entry_price)
-            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl,state["lot"],users,state["strike"])))
-
-            log_trade_event(
-                event_type="ENTRY",
-                leg_name=name,
-                token=token,
-                symbol="NIFTY",
-                side="BUY",
-                lot=state["lot"],
-                price=entry_price,
-                reason="Trade opened",
-                pnl= state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-            log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
-
-
-
-
-def tick_exit_check(name, token, state, ltp):
-    global combined_pnl
-
-    # =========================
-    # RE-ARM LOGIC
-    # =========================
-    if state["rearm_required"]:
-        if ltp < state["marked"]:
-            state["rearm_required"] = False
-
-            global combined_exit_active
-            combined_exit_active = False  
-
-            print(f"🔄 {name} REARMED")
-
-    if not state["position"]:
-        return
-
-    if ltp < state["marked"]:
-        exit_price = ltp
-
-        pnl = (exit_price - state["entry_price"]) * LOTSIZE * state["lot"]
-
-        state["pnl"] += pnl
-        combined_pnl += pnl
-
-        deployments = get_today_deployments()
-
-        users = group_users_by_broker(deployments)
-
-        print("FORMATTED USERS:", users)
-
-
-        print("⚡ TICK EXIT", name, exit_price)
-        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl , combined_pnl,state["lot"],users,state["strike"])))
-
-
-        log_trade_event(
-            event_type="EXIT",
-            leg_name=name,
-            token=token,
-            symbol=SYMBOL,
-            side="SELL",
-            lot=state["lot"],
-            price=exit_price,
-            reason="Below Mark (Tick Exit)",
-            pnl=state["pnl"],
-            cum_pnl=combined_pnl
-        )
-
-        state["position"] = False
-
-        if state["lot"] < 15:
-            state["lot"] += 1
-
-
-
-
-def universal_exit_check(ce_ltp, pe_ltp):
-
-    global combined_pnl, combined_exit_active ,TARGET_POINTS , CE_TARGET_POINTS , PE_TARGET_POINTS
-
-    ce_running = 0
-    pe_running = 0
-
-    if ce_state["position"]:
-        ce_running = (ce_ltp - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
-
-    if pe_state["position"]:
-        pe_running = (pe_ltp - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
-
-    total = ce_state["pnl"] + pe_state["pnl"] + ce_running + pe_running
-
-    if ce_state["position"] or pe_state["position"]:
-        telemetry["status"] = 'RUNNING'
-
-    ce_total = ce_state["pnl"] + ce_running
-    pe_total = pe_state["pnl"] + pe_running
-
-    combined_total = ce_total + pe_total
-
-
-    # =========================
-    # ✅ COMBINED EXIT (TICK LEVEL SAFE)
-    # =========================
-
-
-    if ce_total >= CE_TARGET_POINTS*65:
-
-        print("🏁 TARGET HIT", total)
-        deployments = get_today_deployments()
-
-        users = group_users_by_broker(deployments)
-
-        print("FORMATTED USERS:", users)
-
-
-        
-
-
-        # FORCE EXIT CE
-        if ce_state["position"]:
-            exit_price = ce_ltp
-            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
-
-            ce_state["pnl"] += pnl
-            combined_pnl += pnl
-            
-            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"],users,ce_state["strike"])))
-            log_trade_event(
-                event_type="EXIT",
-                leg_name="CE",
-                token=CE_ID,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=ce_state["lot"],
-                price=exit_price,
-                reason="UNIVERSAL EXIT",
-                pnl= ce_state["pnl"],
-                cum_pnl=combined_pnl
-                )   
-
-            ce_state["position"] = False
-            ce_state["rearm_required"] = True
-            ce_state["lot"] = 1
-            CE_TARGET_POINTS = CE_TARGET_POINTS + 50
-
-    if pe_total >= PE_TARGET_POINTS*65:
-
-        print("🏁 TARGET HIT", total)
-        deployments = get_today_deployments()
-
-        users = group_users_by_broker(deployments)
-
-        print("FORMATTED USERS:", users)
-
-        
-        # FORCE EXIT PE
-        if pe_state["position"]:
-            exit_price = pe_ltp
-            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
-
-            pe_state["pnl"] += pnl
-            combined_pnl += pnl
-
-            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"],users,pe_state["strike"])))
-
-            log_trade_event(
-                event_type="EXIT",
-                leg_name="PE",
-                token=PE_ID,
-                symbol=SYMBOL,
-                side="SELL",
-                lot=pe_state["lot"],
-                price=exit_price,
-                reason="UNIVERSAL EXIT",
-                pnl= pe_state["pnl"],
-                cum_pnl=combined_pnl
-                )
-
-            pe_state["position"] = False
-            pe_state["rearm_required"] = True
-            pe_state["lot"] = 1
-            PE_TARGET_POINTS = PE_TARGET_POINTS + 50
-
-
-# =========================
-# CALLBACKS
-# =========================
-
+ce_state["ema_touched"] = False
+pe_state["ema_touched"] = False
 
 def on_message(msg):
 
@@ -884,18 +991,18 @@ def on_message(msg):
 
     # store LTP
     if token == CE_ID:
-        tick_exit_check("CE", token, ce_state, ltp)
         telemetry["ce_ltp"] = float(ltp or 0)
 
     if token == PE_ID:
-        tick_exit_check("PE", token, pe_state, ltp)
+       
         telemetry["pe_ltp"] = float(ltp or 0)  
 
     # =========================
     # RUN UNIVERSAL EXIT (TICK LEVEL)
     # =========================
-    if "ce_ltp" in telemetry and "pe_ltp" in telemetry:
-        universal_exit_check(telemetry["ce_ltp"], telemetry["pe_ltp"])
+
+    #if "ce_ltp" in telemetry and "pe_ltp" in telemetry:
+    #    universal_exit_check(telemetry["ce_ltp"], telemetry["pe_ltp"])
 
     # =========================
     # CANDLE LOGIC
@@ -903,37 +1010,45 @@ def on_message(msg):
     if candle:
 
         if token == CE_ID:
-            print("50 reentry CE",token)
-            print(candle)
-            handle_leg("CE", token, candle, ce_state, ltp)
+            #print("50 reentry CE",token)
+            #print(candle)
+            ema = update_ema(ce_state, candle)
+            #handle_leg("CE", token, candle, ce_state, ltp)
 
         if token == PE_ID:
-            print("50 reentry PE",token)
-            print(candle)
-            handle_leg("PE", token, candle, pe_state, ltp)
-
-    # =========================
-    # TELEMETRY (REAL-TIME PnL)
-    # =========================
-    ce_running = 0
-    pe_running = 0
-
-    if ce_state["position"]:
-        ce_running = (telemetry["ce_ltp"] - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
-
-    if pe_state["position"]:
-        pe_running = (telemetry["pe_ltp"] - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
-
-    telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
-    telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
-    telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
+            #print("50 reentry PE",token)
+            #print(candle)
+            ema = update_ema(pe_state, candle)
+            #handle_leg("PE", token, candle, pe_state, ltp)
 
 
-# =====================
-# START WS 
-# =====================
 
 
+
+instruments = [
+    (MarketFeed.NSE_FNO, str(CE_ID), MarketFeed.Quote),
+    (MarketFeed.NSE_FNO, str(PE_ID), MarketFeed.Quote),
+]
+
+feed = MarketFeed(dhan_context, instruments, "v2")
+
+
+while True:
+    try:
+
+        feed.run_forever()
+        msg = feed.get_data()
+
+        if msg:  
+            on_message(msg)
+
+    except Exception as e:
+        print("WS ERROR:", e)
+        feed.run_forever()
+
+
+
+""" 
 TOKENS = [CE_ID , PE_ID]
 
 def on_tick(token, msg):
@@ -945,3 +1060,5 @@ def on_tick(token, msg):
 
 for t in TOKENS:
     subscribe(t, on_tick)
+
+"""
