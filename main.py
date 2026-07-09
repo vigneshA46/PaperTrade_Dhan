@@ -24,7 +24,11 @@ import nifty_option_buying_50_ltp as strategy15
 #import delta_option_buying as strategy6
 import paper_trade_niftyoption8_no_reentry as strategy8
 #import vwap_option_buying as strategy10
-import Nifty_option_buying_tsl as strategy11
+
+
+##################
+##################
+#import Nifty_option_buying_tsl as strategy11
 
 
 

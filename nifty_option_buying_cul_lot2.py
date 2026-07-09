@@ -36,7 +36,9 @@ ATM = None
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
-COMMON_ID = "24924d3f-492b-4f03-8ee3-20111b275fdf"
+
+
+COMMON_ID = "af37b632-be51-44fc-8435-b3ed7d03ddb5"
 SYMBOL = "NIFTY"
 
 load_dotenv()
@@ -56,6 +58,10 @@ TARGET_POINTS = 50
 PE_TARGET_POINTS = 50
 LOTSIZE = 65
 
+RECOVERY_TRIGGER = -5000
+
+recovery_mode = False
+
 today = datetime.now(IST).strftime("%Y-%m-%d")
 
 
@@ -67,7 +73,7 @@ dhan_context = DhanContext(client_id, access_token)
 dhan = dhanhq(dhan_context)
 fno_df = load_fno_master()
 
-strategy_id = "24924d3f-492b-4f03-8ee3-20111b275fdf"
+strategy_id = "af37b632-be51-44fc-8435-b3ed7d03ddb5"
 
 loop = asyncio.new_event_loop()
 
@@ -754,7 +760,7 @@ def tick_exit_check(name, token, state, ltp):
 
 def universal_exit_check(ce_ltp, pe_ltp):
 
-    global combined_pnl, combined_exit_active ,TARGET_POINTS , CE_TARGET_POINTS , PE_TARGET_POINTS
+    global combined_pnl, combined_exit_active ,TARGET_POINTS , CE_TARGET_POINTS , PE_TARGET_POINTS , recovery_mode
 
     ce_running = 0
     pe_running = 0
@@ -779,6 +785,89 @@ def universal_exit_check(ce_ltp, pe_ltp):
     # =========================
     # ✅ COMBINED EXIT (TICK LEVEL SAFE)
     # =========================
+
+    if not recovery_mode and combined_total <= RECOVERY_TRIGGER:
+        recovery_mode = True
+        print("⚠ Recovery Mode Activated")
+
+    if recovery_mode and combined_total >= 0:
+        recovery_mode = False
+        print("✅ Recovery Mode Deactivated")
+
+        print("🏁 TARGET HIT", total)
+        deployments = get_today_deployments()
+
+        users = group_users_by_broker(deployments)
+
+        print("FORMATTED USERS:", users)
+
+
+        # FORCE EXIT CE
+        if ce_state["position"]:
+            exit_price = ce_ltp
+            pnl = (exit_price - ce_state["entry_price"]) * LOTSIZE * ce_state["lot"]
+
+            ce_state["pnl"] += pnl
+            combined_pnl += pnl
+            
+            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl,ce_state["lot"],users,ce_state["strike"])))
+            log_trade_event(
+                event_type="EXIT",
+                leg_name="CE",
+                token=CE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=ce_state["lot"],
+                price=exit_price,
+                reason="UNIVERSAL EXIT",
+                pnl= ce_state["pnl"],
+                cum_pnl=combined_pnl
+                )   
+
+            ce_state["position"] = False
+            ce_state["rearm_required"] = True
+            ce_state["lot"] = 2
+            CE_TARGET_POINTS = CE_TARGET_POINTS + 50
+
+
+        print("🏁 TARGET HIT", total)
+        deployments = get_today_deployments()
+
+        users = group_users_by_broker(deployments)
+
+        print("FORMATTED USERS:", users)
+
+        
+        # FORCE EXIT PE
+        if pe_state["position"]:
+            exit_price = pe_ltp
+            pnl = (exit_price - pe_state["entry_price"]) * LOTSIZE * pe_state["lot"]
+
+            pe_state["pnl"] += pnl
+            combined_pnl += pnl
+
+            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl,pe_state["lot"],users,pe_state["strike"])))
+
+            log_trade_event(
+                event_type="EXIT",
+                leg_name="PE",
+                token=PE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=pe_state["lot"],
+                price=exit_price,
+                reason="UNIVERSAL EXIT",
+                pnl= pe_state["pnl"],
+                cum_pnl=combined_pnl
+                )
+
+            pe_state["position"] = False
+            pe_state["rearm_required"] = True
+            pe_state["lot"] = 2
+            PE_TARGET_POINTS = PE_TARGET_POINTS + 50
+
+
+
 
 
     if ce_total >= CE_TARGET_POINTS*65:
@@ -818,7 +907,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             ce_state["position"] = False
             ce_state["rearm_required"] = True
-            ce_state["lot"] = 1
+            ce_state["lot"] = 2
             CE_TARGET_POINTS = CE_TARGET_POINTS + 50
 
     if pe_total >= PE_TARGET_POINTS*65:
@@ -856,7 +945,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             pe_state["position"] = False
             pe_state["rearm_required"] = True
-            pe_state["lot"] = 1
+            pe_state["lot"] = 2
             PE_TARGET_POINTS = PE_TARGET_POINTS + 50
 
 
