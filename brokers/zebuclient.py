@@ -16,7 +16,7 @@ class ZebuClient:
         self.jKey = None
         self.actid = uid
 
-    
+
     # -------------------------
     # 🔐 Utility: SHA256
     # -------------------------
