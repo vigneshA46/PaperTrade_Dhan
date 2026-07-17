@@ -8,8 +8,9 @@ import os
 import pytz
 import threading
 
-
 import paper_trade_niftyoption50_no_reentry as strategy1
+
+
 import nifty_option_buying_cumulative_ltp as straegy16
 
 
