@@ -15,7 +15,7 @@ from dispatcher import subscribe
 from queue import Queue
 import asyncio
 from find_instrument import FindInstrument
-from option_chain_cache import set_option_chain, get_option_chain
+import option_chain_manager
 
 
 # =========================
@@ -466,11 +466,13 @@ else:
 
 atm = ATM
 
-oc = dhan.option_chain(
+""" oc = dhan.option_chain(
     under_security_id=13,
     under_exchange_segment="IDX_I",
     expiry=str(next_expiry)  
-)
+) """
+
+oc = option_chain_manager.get_option_chain()
 
 
 option_data = oc["data"]["data"]["oc"]
