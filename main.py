@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import pytz
 import threading
+import option_chain_manager
 
 import paper_trade_niftyoption50_no_reentry as strategy1
 
