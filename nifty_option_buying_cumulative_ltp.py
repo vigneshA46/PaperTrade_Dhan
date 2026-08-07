@@ -930,6 +930,106 @@ def on_message(msg):
     telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
 
 
+
+    if telemetry["pnl"] >= 9500 or telemetry["pnl"] <= -13000:
+
+        print("🚨 MTM LIMIT HIT — FORCE EXIT ALL")
+
+        # CE FORCE EXIT
+        if ce_state["position"]:
+            print(f"🔴 CE FORCE EXIT | TOKEN: {CE_ID} | LTP: {telemetry.get('ce_ltp')} | TOTAL PNL: {ce_state['pnl']:.2f}")
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        "CE",
+                        "SELL",
+                        str(CE_ID),
+                        "PROFIT EXIT",
+                        "EXIT",
+                        str(telemetry.get('ce_ltp')),
+                        ce_state["pnl"],
+                        combined_pnl,
+                        ce_state["lot"],
+                        users,
+                        strike = ce_strike
+                    )
+                )
+            )
+
+            log_trade_event(
+                
+                event_type="EXIT",
+                leg_name="CE",
+                token=CE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=ce_state["lot"],
+                price=telemetry.get('ce_ltp'),
+                reason="FORCE EXIT MTM",
+                pnl= ce_state["pnl"],
+                cum_pnl=combined_pnl
+                )
+
+            ce_state["position"] = False
+            ce_state["entry_price"] = None
+            ce_state["last_price"] = None
+
+        # PE FORCE EXIT
+        if pe_state["position"]:
+            print(f"🔴 PE FORCE EXIT | TOKEN: {PE_ID} | LTP: {telemetry.get('pe_ltp')} | TOTAL PNL: {pe_state['pnl']:.2f}")
+
+            deployments = get_today_deployments()
+            users = group_users_by_broker(deployments)
+
+
+            run_async(
+                emit_signal(
+                    build_payload(
+                        "PE",
+                        "SELL",
+                        str(PE_ID),
+                        "PROFIT EXIT",
+                        "EXIT",
+                        str(telemetry.get('pe_ltp')),
+                        pe_state["pnl"],
+                        combined_pnl,
+                        pe_state["lot"],
+                        users,
+                        strike = pe_strike
+                    )
+                )
+            )
+
+            log_trade_event(
+                
+                event_type="EXIT",
+                leg_name="PE",
+                token=PE_ID,
+                symbol=SYMBOL,
+                side="SELL",
+                lot=pe_state["lot"],
+                price=telemetry.get('pe_ltp'),
+                reason="FORCE EXIT MTM",
+                pnl= pe_state["pnl"],
+                cum_pnl=combined_pnl
+                )
+
+            pe_state["position"] = False
+            pe_state["entry_price"] = None
+            pe_state["last_price"] = None
+
+        ce_state["trading_disabled"] = True
+        pe_state["trading_disabled"] = True
+
+
+
+
+
 # =====================
 # START WS 
 # =====================
