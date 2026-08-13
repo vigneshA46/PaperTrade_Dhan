@@ -929,6 +929,7 @@ def on_message(msg):
     telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
     telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
 
+    combined_pnl = telemetry["pnl"]
 
 
     if telemetry["pnl"] >= 9500 or telemetry["pnl"] <= -13000:
