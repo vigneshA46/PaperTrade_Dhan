@@ -532,6 +532,7 @@ pe_strike = best_pe["strike"]
 PE_ID = str(best_pe["security_id"])
 
 
+
 finder=FindInstrument()
 
 ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
