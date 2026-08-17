@@ -13,22 +13,24 @@ import paper_trade_niftyoption50_no_reentry as strategy1
 
 option_chain_manager.update_option_chain()
 
-
-
 import nifty_option_buying_cumulative_ltp as straegy16
-
+import nifty_option_buying_cul_lot2 as strategy12
 
 #import paper_trade_niftyoption50_reentry as strategy2
-import paper_trade_niftyoption35_reentry as strategy3
+#import paper_trade_niftyoption35_reentry as strategy3
 #import paper_trade_niftyoption35_reentry_point as strategy4
-import paper_trade_niftyoption50_reentry_point as strategy5
+#import paper_trade_niftyoption50_reentry_point as strategy5
 import Nifty_option_buying3k as strategy9
-
+import nifty_future_buying_cumltp as strategy13
 import nifty_option_buying_50_ltp as strategy15
+import paper_trade_niftyoption8_no_reentry as strategy8
+
+
 
 #import delta_option_buying as strategy6
 #import paper_trade_niftyoption8_no_reentry as strategy8
 #import vwap_option_buying as strategy10
+
 
 
 ##################
@@ -44,6 +46,7 @@ rb_buying=False
 ALL_TOKENS = set()
 if 'strategy1' in globals():
     ALL_TOKENS.update(strategy1.TOKENS)
+
 
 
 

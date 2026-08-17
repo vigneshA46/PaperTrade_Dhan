@@ -15,6 +15,8 @@ from queue import Queue
 from signal_emitter import emit_signal
 import asyncio
 from find_instrument import FindInstrument
+import option_chain_manager
+
 
 
 # =========================
@@ -129,7 +131,7 @@ def group_users_by_broker(deployments):
     return grouped
 
 
-def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot,users):
+def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot,users , strike ):
 
     if name == "CE":
         row = AngelCE
@@ -142,7 +144,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
     month = expiry_date.strftime("%b").upper()
     year = expiry_date.strftime("%y")
 
-    symbol = f"NIFTY{day}{month}{year}{ATM}{name}"
+    symbol = f"NIFTY{day}{month}{year}{strike}{name}"
     expiry = expiry_date.strftime("%Y-%m-%d")
 
     return {
@@ -158,7 +160,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
-        "strike": ATM,
+        "strike": strike,
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
@@ -364,7 +366,8 @@ def init_state():
         "pnl": 0.0,
         "symbol": None,
         "rearm_required": False,
-        "moment":0.0
+        "moment":0.0,
+        "strike": None
     }
 
 # =========================
@@ -423,6 +426,66 @@ if opening_candles:
 else:
     print("Waiting for 9:17 candle...")
 
+atm = ATM
+
+oc = option_chain_manager.get_option_chain()
+
+
+option_data = oc["data"]["data"]["oc"]
+
+target = 180
+
+
+best_ce = None
+best_pe = None
+
+best_ce_ltp = float("inf")
+best_pe_ltp = float("inf")
+
+
+for strike, strike_data in option_data.items():
+
+    strike = float(strike)
+
+    # ================= CE =================
+    # ONLY ATM OR ITM CE
+    if strike <= atm and "ce" in strike_data:
+
+        ce_ltp = strike_data["ce"]["last_price"]
+
+        if ce_ltp >= target and ce_ltp < best_ce_ltp:
+
+            best_ce_ltp = ce_ltp
+
+            best_ce = {
+                "strike": strike,
+                "ltp": ce_ltp,
+                "security_id": strike_data["ce"]["security_id"]
+                }
+
+    # ================= PE =================
+    # ONLY ATM OR ITM PE
+    # ================= PE =================
+    
+    if strike >= atm and "pe" in strike_data:
+
+        pe_ltp = strike_data["pe"]["last_price"]
+
+        if pe_ltp >= target and pe_ltp < best_pe_ltp:
+
+            best_pe_ltp = pe_ltp
+
+            best_pe = {
+                "strike": strike,
+                "ltp": pe_ltp,
+                "security_id": strike_data["pe"]["security_id"]
+            }    # FINAL VALUES
+
+ce_strike = best_ce["strike"]
+CE_ID = str(best_ce["security_id"])
+
+pe_strike = best_pe["strike"]
+PE_ID = str(best_pe["security_id"])
 
 # =========================
 # OPTION SELECTION
@@ -431,12 +494,13 @@ else:
 today = datetime.now().date()
 finder=FindInstrument()
 
-ce_row = find_option_security(fno_df, ATM, "CE", today, "NIFTY")
-pe_row = find_option_security(fno_df, ATM, "PE", today, "NIFTY")
+
+ce_row = find_option_security(fno_df, ce_strike, "CE", today, "NIFTY")
+pe_row = find_option_security(fno_df, pe_strike, "PE", today, "NIFTY")
 
 
-AngelCE = finder.get_option("NIFTY" , int(ATM) , "CE")
-AngelPE = finder.get_option("NIFTY" , int(ATM) , "PE")
+AngelCE = finder.get_option("NIFTY" , int(ce_strike) , "CE")
+AngelPE = finder.get_option("NIFTY" , int(pe_strike) , "PE")
 
 print("angel tokens" , AngelCE , AngelPE)
 
@@ -455,8 +519,8 @@ builders = {
 logtradeleg(
     COMMON_ID,
     "CE",
-    f"NIFTY CE {ATM}",
-    ATM,
+    f"NIFTY CE {ce_strike}",
+    ce_strike,
     str(today),
     CE_ID
 )
@@ -465,12 +529,11 @@ logtradeleg(
 logtradeleg(
     COMMON_ID,
     "PE",
-    f"NIFTY PE {ATM}",
-    ATM,
+    f"NIFTY PE {pe_strike}",
+    pe_strike,
     str(today),
     PE_ID
 )
-
 
 
 # =========================
@@ -479,6 +542,11 @@ logtradeleg(
 
 ce_state = init_state()
 pe_state = init_state()
+
+
+ce_state["strike"] = ce_strike
+pe_state["strike"] = pe_strike
+
 
 combined_pnl=0
 
@@ -524,7 +592,7 @@ def handle_leg(name, token, candle, state, ltp):
 
             print("FORMATTED USERS:", users)
 
-            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl, state["lot"],users)))
+            run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl, state["lot"],users, state["strike"])))
             log_trade_event(
                 
                 event_type="EXIT",
@@ -572,7 +640,7 @@ def handle_leg(name, token, candle, state, ltp):
             users = group_users_by_broker(deployments)
 
             print("FORMATTED USERS:", users)
-            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl, state["lot"],users)))
+            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl, state["lot"],users , state["strike"])))
 
 
             log_trade_event(
@@ -609,7 +677,7 @@ def handle_leg(name, token, candle, state, ltp):
 
         print("🔴 EXIT", name, exit_price)
 
-        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl, state["lot"],users)))
+        run_async(emit_signal(build_payload(name, "SELL", token , "exit","EXIT", ltp, pnl, combined_pnl, state["lot"],users, state["strike"])))
         log_trade_event(
             event_type="EXIT",
             leg_name=name,
@@ -677,7 +745,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             print("FORMATTED USERS:", users)
 
-            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl, ce_state["lot"],users))) 
+            run_async(emit_signal(build_payload("CE", "SELL", CE_ID , "exit","EXIT", ce_ltp, ce_state["pnl"], combined_pnl, ce_state["lot"],users, ce_state["strike"]))) 
 
             log_trade_event(
                 event_type="EXIT",
@@ -713,7 +781,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
             print("FORMATTED USERS:", users)
             
-            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl, pe_state["lot"],users))) 
+            run_async(emit_signal(build_payload("PE", "SELL", PE_ID , "exit","EXIT", pe_ltp, pe_state["pnl"], combined_pnl, pe_state["lot"],users, pe_state["strike"]))) 
             log_trade_event(
                 event_type="EXIT",
                 leg_name="PE",
