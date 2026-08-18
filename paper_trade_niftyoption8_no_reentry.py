@@ -544,8 +544,8 @@ ce_state = init_state()
 pe_state = init_state()
 
 
-ce_state["strike"] = ce_strike
-pe_state["strike"] = pe_strike
+ce_state["strike"] = float(ce_strike)
+pe_state["strike"] = float(pe_strike)
 
 
 combined_pnl=0

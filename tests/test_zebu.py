@@ -9,11 +9,11 @@ from brokers.symbolresolver import SymbolResolver
 
 
 client = ZebuClient(
-    uid="Z64199",
-    password="H@s@n33",
-    api_key="6aMvkdQuGkYyHAp4puEHF6NCu9eC67D6",
-    vendor_code="Z64199",
-    factor2="03032003"
+    uid="Z68774",
+    password="mT621214@",
+    api_key="k3YE57Yy99D2QdCBF5r73ef2XZ5bN73G",
+    vendor_code="Z68774",
+    factor2="4CB6L2Q32TN6MA6633C27V6IZ6I4RN5A"
 )
 
 
@@ -26,7 +26,7 @@ print(client.get_client_details())
 # Place MARKET order
 client.place_order(
     exch="NFO",
-    tsym="NIFTY13APR26C22900",  # corrected expiry
+    tsym="NIFTY18AUG26C24100",  # corrected expiry
     qty=65,                     # 1 lot
     trantype="B"
 )
