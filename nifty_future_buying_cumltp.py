@@ -15,7 +15,6 @@ from dispatcher import subscribe
 from queue import Queue
 import asyncio
 from find_instrument import FindInstrument
-from option_chain_cache import set_option_chain, get_option_chain
 import pandas as pd
 import option_chain_manager
 
@@ -145,6 +144,9 @@ def build_payload(name , side , token , reason , event_type , ltp , pnl , cum_pn
     day = expiry_date.strftime("%d")
     month = expiry_date.strftime("%b").upper()
     year = expiry_date.strftime("%y")
+
+    strike = str(int(strike))
+
 
     symbol = f"NIFTY{day}{month}{year}{strike}{name}"
     expiry = expiry_date.strftime("%Y-%m-%d")
@@ -1595,7 +1597,6 @@ def on_message(msg):
     # =========================
 
     elif token == PE_ID:
-
         telemetry["pe_ltp"] = float(ltp or 0)
 
     else:
@@ -1662,7 +1663,7 @@ instruments = [
 feed = MarketFeed(dhan_context, instruments, "v2")
 
 TOKENS = [
-  str(CE_ID) , str(PE_ID) , str(FUT_ID)
+  CE_ID , PE_ID , FUT_ID
 ]
 
 

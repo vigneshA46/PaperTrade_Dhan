@@ -144,9 +144,11 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
     month = expiry_date.strftime("%b").upper()
     year = expiry_date.strftime("%y")
 
-    symbol = f"NIFTY{day}{month}{year}{strike}{name}"
-    expiry = expiry_date.strftime("%Y-%m-%d")
+    strike = str(int(strike))
 
+    symbol = f"NIFTY{day}{month}{year}{str(strike)}{name}"
+    expiry = expiry_date.strftime("%Y-%m-%d")
+    print("PAYLOAD SYMBOL:", symbol)
     return {
         "strategy_id": COMMON_ID,
         "users": users,
@@ -160,7 +162,7 @@ def build_payload(name, side, token , reason, event_type, ltp, pnl, cum_pnl, lot
         "symbol": symbol,
         "exchange": "NFO",
         "expiry":expiry,
-        "strike": strike,
+        "strike": str(strike),
         "price":ltp,
         "pnl":pnl,
         "cum_pnl":cum_pnl,
