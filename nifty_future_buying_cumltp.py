@@ -659,6 +659,8 @@ def handle_leg(
 
             exit_price = option_ltp
 
+            name = "CE" if token == CE_ID else "PE"
+
             pnl = (
                 exit_price -
                 state["entry_price"]
