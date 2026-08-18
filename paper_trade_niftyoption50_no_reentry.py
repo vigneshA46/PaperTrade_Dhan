@@ -16,6 +16,8 @@ from signal_emitter import emit_signal
 #from tests.test_order import get_today_deployments, group_users_by_broker
 import asyncio
 from find_instrument import FindInstrument
+import pandas as pd
+
 
 
 # =========================
@@ -37,7 +39,7 @@ ATM = None
 TRADE_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/event"
 EVENT_LOG_URL = "https://algoapi.dreamintraders.in/api/paperlogger/paperlogger"
 
-COMMON_ID = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+COMMON_ID = "1fff432a-0411-40ff-aefd-c0b0026d5a8g"
 SYMBOL = "NIFTY"
 
 load_dotenv()
@@ -56,7 +58,7 @@ TRADE_END   = dtime(15, 14)
 TARGET_POINTS = 50
 LOTSIZE = 65
 
-strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a6d"
+strategy_id = "1fff432a-0411-40ff-aefd-c0b0026d5a8g"
 
 today = datetime.now(IST).strftime("%Y-%m-%d")
 
@@ -373,7 +375,29 @@ def init_state():
 # =========================
 
 
+def get_nearest_nifty_fut(df, trade_date):
+    futs = df[
+        (df["INSTRUMENT"] == "FUTIDX") &
+        (df["UNDERLYING_SYMBOL"] == SYMBOL)
+    ].copy()
+
+
+    futs["SM_EXPIRY_DATE"] = pd.to_datetime(futs["SM_EXPIRY_DATE"])
+    futs = futs[futs["SM_EXPIRY_DATE"] >= today]
+
+    fut = futs.sort_values("SM_EXPIRY_DATE").iloc[0]
+    return fut
+
+
+
+
 wait_for_start()
+
+
+fut=get_nearest_nifty_fut(fno_df , today)
+
+FUT_ID = str(fut["SECURITY_ID"])
+
 
 print("\n🚀 NIFTY OPTION BUYING STARTED\n")
 threading.Thread(target=trade_log_worker, daemon=True).start()
@@ -389,6 +413,7 @@ idx = dhan.intraday_minute_data(
     from_date=today,
     to_date=today
 )
+
 
 data = idx.get("data", {})
 
@@ -447,32 +472,6 @@ PE_ID = str(pe_row["SECURITY_ID"])
 
 print("CE :", CE_ID)
 print("PE :", PE_ID)
-
-builders = {
-    CE_ID: OneMinuteCandleBuilder(),
-    PE_ID: OneMinuteCandleBuilder()
-}
-
-
-# Log CE leg
-logtradeleg(
-    COMMON_ID,
-    "CE",
-    f"NIFTY CE {ATM}",
-    ATM,
-    str(today),
-    CE_ID
-)
-
-# Log PE leg
-logtradeleg(
-    COMMON_ID,
-    "PE",
-    f"NIFTY PE {ATM}",
-    ATM,
-    str(today),
-    PE_ID
-)
 
 
 # =========================
@@ -823,6 +822,8 @@ def on_message(msg):
 
 SUBSCRIBE_TOKENS = []
 
+SUBSCRIBE_TOKENS.append(str(FUT_ID))
+
 for i in range(-20, 21):
 
     strike = ATM + (i * 50)
@@ -845,7 +846,7 @@ def on_tick(token, msg):
     if token not in MY_TOKENS:
         #print("token not in tokens")
         return
-    on_message(msg)
+    return
 
     
 for t in TOKENS:
