@@ -1593,10 +1593,6 @@ def on_message(msg):
     if token == CE_ID:
 
         telemetry["ce_ltp"] = float(ltp or 0)
-        universal_exit_check(
-        telemetry["ce_ltp"],
-        telemetry["pe_ltp"]
-        )
 
     # =========================
     # PE LTP
@@ -1622,6 +1618,12 @@ def on_message(msg):
     ce_running = 0
     pe_running = 0
 
+    if ce_state["position"] or pe_state["position"]:
+        universal_exit_check(
+        telemetry["ce_ltp"],
+        telemetry["pe_ltp"]
+        )
+
     if ce_state["position"]:
 
         ce_running = (
@@ -1635,6 +1637,7 @@ def on_message(msg):
             telemetry["pe_ltp"] -
             pe_state["entry_price"]
         ) * LOTSIZE * pe_state["lot"]
+
 
     telemetry["ce_pnl"] = (
         ce_state["pnl"] +
