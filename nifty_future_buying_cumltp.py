@@ -1593,6 +1593,10 @@ def on_message(msg):
     if token == CE_ID:
 
         telemetry["ce_ltp"] = float(ltp or 0)
+        universal_exit_check(
+        telemetry["ce_ltp"],
+        telemetry["pe_ltp"]
+        )
 
     # =========================
     # PE LTP
@@ -1609,10 +1613,7 @@ def on_message(msg):
     # UNIVERSAL EXIT
     # =========================
 
-    universal_exit_check(
-        telemetry["ce_ltp"],
-        telemetry["pe_ltp"]
-    )
+    
 
     # =========================
     # REAL-TIME PNL
