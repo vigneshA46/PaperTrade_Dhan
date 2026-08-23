@@ -436,7 +436,8 @@ threading.Thread(target=trade_log_worker, daemon=True).start()
 
 fut = get_nearest_nifty_fut(fno_df, today)
 
-FUT_ID = str(fut["SECURITY_ID"])
+#FUT_ID = str(fut["SECURITY_ID"])
+FUT_ID = "68407"
 
 print("📌 Nearest NIFTY FUT:", FUT_ID)
 print("📌 FUT Expiry:", fut["SM_EXPIRY_DATE"])
@@ -1463,11 +1464,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         users = group_users_by_broker(deployments)
 
         print("FORMATTED USERS:", users)
-
-
         
-        
-
         # FORCE EXIT CE
         if ce_state["position"]:
             exit_price = ce_ltp
