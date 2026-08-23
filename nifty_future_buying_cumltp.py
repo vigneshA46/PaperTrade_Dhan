@@ -957,23 +957,23 @@ def handle_futures_candle(candle):
     # ENTRY SIGNALS
     # =========================
 
-    if not ce_state["position"]:
-        handle_leg(
-            "CE",
-            CE_ID,
-            candle,
-            ce_state,
-            telemetry["ce_ltp"]
-        )
+    
+    handle_leg(
+        "CE",
+        CE_ID,
+        candle,
+        ce_state,
+        telemetry["ce_ltp"]
+    )
 
-    if not pe_state["position"]:
-        handle_leg(
-            "PE",
-            PE_ID,
-            candle,
-            pe_state,
-            telemetry["pe_ltp"]
-        )
+    
+    handle_leg(
+        "PE",
+        PE_ID,
+        candle,
+        pe_state,
+        telemetry["pe_ltp"]
+    )
 
 
 def handle_futures_tick(futures_ltp):
