@@ -801,6 +801,8 @@ def handle_leg(
                 cum_pnl=combined_pnl
             )
 
+            state["entry_price"] = entry_price
+
             log_event(
                 f"{name} BUY",
                 token,
@@ -1052,6 +1054,8 @@ def handle_futures_tick(futures_ltp):
                 cum_pnl=combined_pnl
             )
 
+            ce_state["entry_price"] = entry_price
+
             log_event(
                 "CE BUY",
                 CE_ID,
@@ -1121,6 +1125,8 @@ def handle_futures_tick(futures_ltp):
                 pnl=pe_state["pnl"],
                 cum_pnl=combined_pnl
             )
+
+            pe_state["entry_price"] = entry_price
 
             log_event(
                 "PE BUY",
