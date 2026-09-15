@@ -938,7 +938,7 @@ def on_message(msg):
 
     combined_pnl = telemetry["pnl"]
 
-        
+
     if not state["position"] and not state["rearm_required"]:
 
         if ltp >= state["marked"] + 10:
