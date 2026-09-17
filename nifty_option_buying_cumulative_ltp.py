@@ -375,7 +375,7 @@ def get_next_expiry():
     # first expiry is always nearest expiry
     next_expiry = expiry_list["data"][0]
 
-    return next_expiry
+    return next_expiry 
 
 
 
@@ -395,7 +395,6 @@ def init_state():
         "rearm_required": False,
         "moment":0.0,
         "strike":None
-
     }
 
 # =========================
@@ -939,7 +938,7 @@ def on_message(msg):
     combined_pnl = telemetry["pnl"]
 
 
-    if not state["position"] and not state["rearm_required"]:
+    if not state["position"] and not state["rearm_required"] and not state["trading_disabled"]:
 
         if ltp >= state["marked"] + 10:
 
