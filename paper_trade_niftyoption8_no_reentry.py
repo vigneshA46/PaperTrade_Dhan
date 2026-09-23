@@ -810,6 +810,12 @@ def universal_exit_check(ce_ltp, pe_ltp):
 
 def on_message(msg):
 
+    global ce_state, pe_state, telemetry, combined_pnl , CE_ID , PE_ID
+
+    state = ce_state if str(msg["security_id"]) == CE_ID else pe_state
+
+    name = "CE" if str(msg["security_id"]) == CE_ID else "PE"
+
     if msg.get("type") != "Quote Data":
         return
     
@@ -870,6 +876,46 @@ def on_message(msg):
     telemetry["ce_pnl"] = ce_state["pnl"] + ce_running
     telemetry["pe_pnl"] = pe_state["pnl"] + pe_running
     telemetry["pnl"] = telemetry["ce_pnl"] + telemetry["pe_pnl"]
+
+
+
+    if not state["position"] and not state["rearm_required"] and not state["trading_disabled"]:
+
+        if ltp >= state["marked"] + 10:
+
+            entry_price = ltp   
+
+            state["entry_price"] = entry_price
+            state["entry_time"] = datetime.now(IST).isoformat()
+
+            state["position"] = True
+
+            deployments = get_today_deployments()
+
+            users = group_users_by_broker(deployments)
+
+            print("FORMATTED USERS:", users)
+
+            print("10 points based entry 🟢 BUY")
+            print("🟢 BUY", name, entry_price)
+            run_async(emit_signal(build_payload(name, "BUY", token , "entry","ENTRY", ltp, state["pnl"], combined_pnl,state["lot"],users,state["strike"])))
+
+            log_trade_event(
+                event_type="ENTRY",
+                leg_name=name,
+                token=token,
+                symbol="NIFTY",
+                side="BUY",
+                lot=state["lot"],
+                price=entry_price,
+                reason="Trade opened",
+                pnl= state["pnl"],
+                cum_pnl=combined_pnl
+                )
+
+            log_event(f"{name} BUY", token, "ENTRY_EXECUTED", entry_price, "Trade opened")
+
+
 
 
 # =====================

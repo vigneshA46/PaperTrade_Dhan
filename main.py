@@ -14,7 +14,7 @@ import paper_trade_niftyoption50_no_reentry as strategy1
 option_chain_manager.update_option_chain()
 
 import nifty_option_buying_cumulative_ltp as straegy16
-import nifty_option_buying_cul_lot2 as strategy12
+#import nifty_option_buying_cul_lot2 as strategy12
 
 #import paper_trade_niftyoption50_reentry as strategy2
 #import paper_trade_niftyoption35_reentry as strategy3
