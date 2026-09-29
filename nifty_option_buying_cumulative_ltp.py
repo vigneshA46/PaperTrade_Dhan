@@ -792,7 +792,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
         print("FORMATTED USERS:", users)
 
 
-        
+
 
 
         # FORCE EXIT CE
@@ -814,7 +814,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
                 pnl= ce_state["pnl"],
-                cum_pnl=combined_pnl
+                cum_pnl=combined_total
                 )   
 
             ce_state["position"] = False
@@ -852,7 +852,7 @@ def universal_exit_check(ce_ltp, pe_ltp):
                 price=exit_price,
                 reason="UNIVERSAL EXIT",
                 pnl= pe_state["pnl"],
-                cum_pnl=combined_pnl
+                cum_pnl=combined_total
                 )
 
             pe_state["position"] = False
